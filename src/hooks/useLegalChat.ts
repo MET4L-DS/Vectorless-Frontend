@@ -44,7 +44,9 @@ export function useLegalChat(threadId: string) {
           id: crypto.randomUUID(),
           role: m.role,
           content: m.content,
-          steps: [] // Historical messages hide thinking steps
+          steps: m.steps || [],
+          citations: m.citations || [],
+          key_provisions: m.key_provisions || []
         };
       });
 
@@ -58,9 +60,20 @@ export function useLegalChat(threadId: string) {
     }
   }, [threadId]);
 
-  const clearHistoryLocal = useCallback(() => {
-    console.log(`[useLegalChat] Local message state cleared for threadId: ${threadId}`);
-    setMessages([]);
+  const clearHistory = useCallback(async () => {
+    const clearUrl = `${API_BASE}/api/chats/${threadId}/history`;
+    console.log(`[useLegalChat] clearHistory initiated. Issuing DELETE to: ${clearUrl}`);
+    try {
+      const response = await axios.delete(clearUrl);
+      console.log(`[useLegalChat] clearHistory responded successfully. HTTP Status: ${response.status}`, response.data);
+      setMessages([]);
+    } catch (e: any) {
+      console.error("[useLegalChat] clearHistory failed with error:", e);
+      if (e.response) {
+        console.error(`[useLegalChat] clearHistory server response details: ${e.response.status}`, e.response.data);
+      }
+      setMessages([]);
+    }
   }, [threadId]);
 
   const sendMessage = async (userMessage: string) => {
@@ -215,5 +228,10 @@ export function useLegalChat(threadId: string) {
     }
   };
 
-  return { messages, sendMessage, isStreaming, fetchHistory, clearHistoryLocal };
+  const clearHistoryLocal = useCallback(() => {
+    console.log(`[useLegalChat] Local message state cleared (no DB request) for threadId: ${threadId}`);
+    setMessages([]);
+  }, [threadId]);
+
+  return { messages, sendMessage, isStreaming, fetchHistory, clearHistory, clearHistoryLocal };
 }

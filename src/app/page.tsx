@@ -31,7 +31,7 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "
 
 export default function Home() {
   const [threadId, setThreadId] = useState<string>("default-legal-session");
-  const { messages, sendMessage, isStreaming, fetchHistory, clearHistoryLocal } = useLegalChat(threadId);
+  const { messages, sendMessage, isStreaming, fetchHistory, clearHistory, clearHistoryLocal } = useLegalChat(threadId);
   const [inputVal, setInputVal] = useState("");
   
   // Theme state
@@ -77,7 +77,7 @@ export default function Home() {
   };
 
   const handleClear = () => {
-    clearHistoryLocal();
+    clearHistory();
   };
 
   const handleAuthSubmit = async (e: React.FormEvent) => {
@@ -103,6 +103,33 @@ export default function Home() {
 
   const handleSignOut = async () => {
     await authClient.signOut();
+  };
+
+  const getReasoningLabel = (msg: ChatMessage) => {
+    if (!msg.steps || msg.steps.length === 0) {
+      return "Agent Reasoning Process";
+    }
+    const lastStep = msg.steps[msg.steps.length - 1];
+    const isActive = isStreaming && messages[messages.length - 1]?.id === msg.id;
+    
+    if (isActive) {
+      if (lastStep.type === "thought") {
+        return "Agent Thought: Analyzing query & formulating plan...";
+      }
+      if (lastStep.type === "tool_call") {
+        const toolMatch = lastStep.content.match(/Calling tool: ([A-Za-z0-9_]+)/);
+        const toolName = toolMatch ? toolMatch[1] : "search tool";
+        return `Agent Action: Querying ${toolName}...`;
+      }
+      if (lastStep.type === "observation") {
+        return "Agent Observation: Processing retrieved context...";
+      }
+      if (lastStep.type === "error") {
+        return "Agent Error: Execution encountered issues";
+      }
+    }
+    
+    return `Agent Reasoning Process (${msg.steps.length} updates)`;
   };
 
   // Helper to render inline clickable citations without causing paragraph wraps
@@ -153,6 +180,23 @@ export default function Home() {
         <ReactMarkdown components={components} remarkPlugins={[remarkGfm]}>
           {preprocessedText}
         </ReactMarkdown>
+        {msg.key_provisions && msg.key_provisions.length > 0 && (
+          <div className="mt-4 p-4 bg-emerald-50/50 dark:bg-emerald-950/20 border border-emerald-100 dark:border-emerald-900/50 rounded-lg">
+            <h4 className="text-emerald-800 dark:text-emerald-400 font-semibold mb-2 flex items-center">
+              <Scale className="w-4 h-4 mr-2" />
+              Key Provisions
+            </h4>
+            <ul className="space-y-1 mb-0">
+              {msg.key_provisions.map((provision, idx) => (
+                <li key={idx} className="text-zinc-700 dark:text-zinc-300">
+                  <ReactMarkdown components={components} remarkPlugins={[remarkGfm]}>
+                    {provision.replace(/\[Source:\s*([A-Za-z0-9_]+)\]/g, "[$1](citation://$1)")}
+                  </ReactMarkdown>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
       </div>
     );
   };
@@ -374,7 +418,7 @@ export default function Home() {
                   <div className={`max-w-[85%] rounded-2xl p-4 border transition-all ${
                     msg.role === "user"
                       ? "bg-zinc-100 dark:bg-zinc-900 border-zinc-200 dark:border-zinc-800 text-zinc-950 dark:text-white rounded-br-none"
-                      : "bg-zinc-50/50 dark:bg-zinc-900/40 border-zinc-200 dark:border-zinc-850 text-zinc-800 dark:text-zinc-200 rounded-bl-none"
+                      : "w-full bg-zinc-50/50 dark:bg-zinc-900/40 border-zinc-200 dark:border-zinc-850 text-zinc-800 dark:text-zinc-200 rounded-bl-none"
                   }`}>
                     
                     {/* Intermediate Reasoning Accordion (Only for Assistant) */}
@@ -383,12 +427,25 @@ export default function Home() {
                         <Accordion className="w-full border-none">
                           <AccordionItem value="thinking" className="border-none">
                             <AccordionTrigger className="py-1 px-3 text-xs bg-zinc-100 hover:bg-zinc-200/50 dark:bg-zinc-900 dark:hover:bg-zinc-850 rounded-lg text-amber-700 dark:text-amber-500 font-semibold flex items-center hover:no-underline border border-zinc-250/65 dark:border-zinc-800/40">
-                              <span className="flex items-center space-x-2">
+                              <span className="flex items-center space-x-2 overflow-hidden w-full">
                                 {/* Only animate-spin loader if the message is actively streaming and is the last assistant response */}
                                 {isStreaming && messages[messages.length - 1]?.id === msg.id && (
-                                  <Loader2 className="w-3.5 h-3.5 animate-spin mr-1 text-amber-600 dark:text-amber-500" />
+                                  <Loader2 className="w-3.5 h-3.5 animate-spin mr-1 text-amber-600 dark:text-amber-500 shrink-0" />
                                 )}
-                                <span>Agent Reasoning Process ({msg.steps.length} updates)</span>
+                                <span className="inline-block relative h-4 w-full overflow-hidden">
+                                  <AnimatePresence mode="wait" initial={false}>
+                                    <motion.span
+                                      key={getReasoningLabel(msg)}
+                                      initial={{ y: 8, opacity: 0 }}
+                                      animate={{ y: 0, opacity: 1 }}
+                                      exit={{ y: -8, opacity: 0 }}
+                                      transition={{ duration: 0.15, ease: "easeInOut" }}
+                                      className="absolute left-0 top-0 block truncate w-full text-[11px] md:text-xs"
+                                    >
+                                      {getReasoningLabel(msg)}
+                                    </motion.span>
+                                  </AnimatePresence>
+                                </span>
                               </span>
                             </AccordionTrigger>
                             <AccordionContent className="mt-2 p-3 bg-zinc-50 dark:bg-zinc-950/60 border border-zinc-200 dark:border-zinc-900 rounded-lg space-y-2 text-[11px] font-mono text-zinc-500 dark:text-zinc-400 overflow-x-auto max-h-56">
@@ -432,11 +489,14 @@ export default function Home() {
                       </div>
                     )}
 
-                    {/* Final Answer Text / Loading */}
+                    {/* Final Answer Text / Skeleton Loading */}
                     {msg.role === "assistant" && !msg.content && isStreaming && (
-                      <div className="flex items-center space-x-2 text-zinc-500 dark:text-zinc-400 text-xs py-2">
-                        <Loader2 className="w-3.5 h-3.5 animate-spin text-emerald-600 dark:text-emerald-500" />
-                        <span>Synthesizing final legal opinion...</span>
+                      <div className="space-y-2.5 animate-pulse mt-2 mb-4">
+                        <div className="h-3.5 bg-zinc-200 dark:bg-zinc-800 rounded-md w-full"></div>
+                        <div className="h-3.5 bg-zinc-200 dark:bg-zinc-800 rounded-md w-11/12"></div>
+                        <div className="h-3.5 bg-zinc-200 dark:bg-zinc-800 rounded-md w-4/5"></div>
+                        <div className="h-3.5 bg-zinc-200 dark:bg-zinc-800 rounded-md w-full"></div>
+                        <div className="h-3.5 bg-zinc-200 dark:bg-zinc-800 rounded-md w-3/4"></div>
                       </div>
                     )}
 
