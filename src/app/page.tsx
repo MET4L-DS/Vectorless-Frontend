@@ -54,11 +54,13 @@ export default function Home() {
 
   // Load history on mount or thread change
   useEffect(() => {
+    console.log(`[page.tsx] fetchHistory effect triggered. Current threadId: "${threadId}"`);
     fetchHistory();
   }, [threadId, fetchHistory]);
 
   // Set mounted state to prevent hydration errors for theme
   useEffect(() => {
+    console.log(`[page.tsx] Mount effect triggered. React rendering successfully on client.`);
     setMounted(true);
   }, []);
 
@@ -71,38 +73,53 @@ export default function Home() {
 
   const handleSend = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!inputVal.trim() || isStreaming) return;
+    console.log(`[page.tsx] handleSend triggered. Input value: "${inputVal}"`);
+    if (!inputVal.trim() || isStreaming) {
+      console.warn("[page.tsx] handleSend execution blocked. Empty input or active stream in progress.");
+      return;
+    }
     sendMessage(inputVal);
     setInputVal("");
   };
 
   const handleClear = () => {
+    console.log(`[page.tsx] handleClear triggered. Dispatching clearHistory API request for threadId: "${threadId}"`);
     clearHistory();
   };
 
   const handleAuthSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setAuthError("");
+    console.log(`[page.tsx] handleAuthSubmit triggered. Action: ${isRegistering ? "SignUp" : "SignIn"}, Email: "${authEmail}"`);
     try {
       if (isRegistering) {
-        await authClient.signUp.email({
+        const response = await authClient.signUp.email({
           email: authEmail,
           password: authPassword,
           name: authName,
         });
+        console.log("[page.tsx] Auth signUp.email succeeded.", response);
       } else {
-        await authClient.signIn.email({
+        const response = await authClient.signIn.email({
           email: authEmail,
           password: authPassword,
         });
+        console.log("[page.tsx] Auth signIn.email succeeded.", response);
       }
     } catch (err: any) {
+      console.error("[page.tsx] Auth operation failed:", err);
       setAuthError(err.message || "Authentication failed.");
     }
   };
 
   const handleSignOut = async () => {
-    await authClient.signOut();
+    console.log("[page.tsx] handleSignOut triggered. Requesting session logout...");
+    try {
+      await authClient.signOut();
+      console.log("[page.tsx] Auth signOut succeeded.");
+    } catch (err) {
+      console.error("[page.tsx] Auth signOut failed:", err);
+    }
   };
 
   const getReasoningLabel = (msg: ChatMessage) => {
@@ -137,21 +154,31 @@ export default function Home() {
     const text = msg.content;
     if (!text) return null;
 
-    // Convert [Source: BNS_S309] to markdown links using custom scheme citation://
-    const preprocessedText = text.replace(/\[Source:\s*([A-Za-z0-9_]+)\]/g, "[$1](citation://$1)");
+    // Convert [Source: BNS_S309, BNS_S310] to multiple markdown links using custom scheme #citation-
+    const preprocessCitations = (content: string) => {
+      return content.replace(/\[Source:\s*([^\]]+)\]/g, (match, idsString) => {
+        const ids = idsString.split(',').map((id: string) => id.trim()).filter((id: string) => id);
+        return ids.map((id: string) => `[${id}](#citation-${id})`).join(' ');
+      });
+    };
+
+    const preprocessedText = preprocessCitations(text);
 
     const components = {
       a: ({ href, children }: any) => {
-        if (href && href.startsWith("citation://")) {
-          const citationId = href.replace("citation://", "");
+        if (href && href.startsWith("#citation-")) {
+          const citationId = href.replace("#citation-", "");
           const matchedCitation = (msg.citations || []).find(c => c.node_id === citationId);
 
           return (
             <button
               onClick={() => {
+                console.log(`[page.tsx] Rendering citation sheet for inline link: "${citationId}"`);
                 if (matchedCitation) {
+                  console.log(`[page.tsx] Matching citation metadata loaded from response payload:`, matchedCitation);
                   setSelectedCitation(matchedCitation);
                 } else {
+                  console.warn(`[page.tsx] No matching citation metadata found for ID: "${citationId}". Reverting to placeholder.`);
                   setSelectedCitation({
                     node_id: citationId,
                     title: `${citationId.replace("_", " ")}`,
@@ -190,7 +217,7 @@ export default function Home() {
               {msg.key_provisions.map((provision, idx) => (
                 <li key={idx} className="text-zinc-700 dark:text-zinc-300">
                   <ReactMarkdown components={components} remarkPlugins={[remarkGfm]}>
-                    {provision.replace(/\[Source:\s*([A-Za-z0-9_]+)\]/g, "[$1](citation://$1)")}
+                    {preprocessCitations(provision)}
                   </ReactMarkdown>
                 </li>
               ))}
@@ -295,6 +322,7 @@ export default function Home() {
             <Button 
               onClick={() => {
                 const newId = `session-${Date.now()}`;
+                console.log(`[page.tsx] New Session button clicked. Spawning thread: "${newId}"`);
                 setThreadId(newId);
                 clearHistoryLocal();
               }}
@@ -304,11 +332,14 @@ export default function Home() {
               <span>New Session</span>
             </Button>
           </div>
-
+ 
           <ScrollArea className="flex-1 px-3">
             <div className="space-y-1 text-xs mt-2">
               <button 
-                onClick={() => setThreadId("default-legal-session")}
+                onClick={() => {
+                  console.log('[page.tsx] Default Session list item clicked. Switching thread to: "default-legal-session"');
+                  setThreadId("default-legal-session");
+                }}
                 className={`w-full text-left p-2.5 rounded-lg flex items-center space-x-2 transition-colors ${
                   threadId === "default-legal-session" 
                     ? "bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200/50 dark:border-emerald-900/60 text-emerald-950 dark:text-white" 
@@ -361,7 +392,11 @@ export default function Home() {
               <Button
                 variant="outline"
                 size="sm"
-                onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
+                onClick={() => {
+                  const targetTheme = theme === "dark" ? "light" : "dark";
+                  console.log(`[page.tsx] Theme toggle clicked. Switching from "${theme}" to "${targetTheme}"`);
+                  setTheme(targetTheme);
+                }}
                 className="h-8 w-8 p-0 border-zinc-200 dark:border-zinc-800 hover:bg-zinc-100 dark:hover:bg-zinc-850 text-zinc-500 dark:text-zinc-400 overflow-hidden relative"
                 title="Toggle Theme"
               >
@@ -513,6 +548,7 @@ export default function Home() {
                           <div
                             key={idx}
                             onClick={() => {
+                              console.log(`[page.tsx] Footer citation tag clicked. Rendering sheet for:`, cit);
                               setSelectedCitation(cit);
                               setIsSheetOpen(true);
                             }}
@@ -559,7 +595,10 @@ export default function Home() {
       </main>
 
       {/* Citation Preview Sheet (Sidebar Drawer) */}
-      <Sheet open={isSheetOpen} onOpenChange={setIsSheetOpen}>
+      <Sheet open={isSheetOpen} onOpenChange={(open) => {
+        console.log(`[page.tsx] Citation Preview Sheet open status changed: ${open}`);
+        setIsSheetOpen(open);
+      }}>
         <SheetContent className="w-full bg-white dark:bg-zinc-900 border-l border-zinc-200 dark:border-zinc-800 text-zinc-800 dark:text-zinc-200">
           {/* Broad sidebar layout wrap with padding */}
           <div className="p-6 flex flex-col h-full space-y-6">
@@ -618,6 +657,27 @@ export default function Home() {
         </SheetContent>
       </Sheet>
 
+    </div>
+  );
+}
+
+// Dummy component to force Tailwind v4 JIT compiler to generate prose styles
+// for markdown elements that are injected dynamically by ReactMarkdown.
+function ProseSafelist() {
+  return (
+    <div className="hidden prose prose-emerald dark:prose-invert">
+      <h1>h1</h1><h2>h2</h2><h3>h3</h3><h4>h4</h4><h5>h5</h5><h6>h6</h6>
+      <p>p</p>
+      <ul><li>ul li</li></ul>
+      <ol><li>ol li</li></ol>
+      <blockquote>blockquote</blockquote>
+      <code>code</code>
+      <pre>pre</pre>
+      <table><thead><tr><th>th</th></tr></thead><tbody><tr><td>td</td></tr></tbody></table>
+      <a href="#">a</a>
+      <strong>strong</strong>
+      <em>em</em>
+      <hr />
     </div>
   );
 }

@@ -30,16 +30,16 @@ export function useLegalChat(threadId: string) {
 
   const fetchHistory = useCallback(async () => {
     const historyUrl = `${API_BASE}/api/chats/${threadId}/history`;
-    console.debug(`[useLegalChat] fetchHistory initiated for URL: ${historyUrl}`);
+    console.log(`[useLegalChat] fetchHistory initiated for URL: ${historyUrl}`);
     try {
       const response = await axios.get(historyUrl);
-      console.debug(`[useLegalChat] fetchHistory responded successfully. HTTP Status: ${response.status}`);
+      console.log(`[useLegalChat] fetchHistory responded successfully. HTTP Status: ${response.status}`);
       
       const data = response.data;
-      console.debug("[useLegalChat] fetchHistory payload parsed:", data);
+      console.log("[useLegalChat] fetchHistory payload parsed:", data);
 
       const historyMsgs: ChatMessage[] = (data.messages || []).map((m: any, idx: number) => {
-        console.debug(`[useLegalChat] Parsing history message #${idx + 1}:`, m);
+        console.log(`[useLegalChat] Parsing history message #${idx + 1}:`, m);
         return {
           id: crypto.randomUUID(),
           role: m.role,
@@ -96,11 +96,11 @@ export function useLegalChat(threadId: string) {
       steps: []
     };
     
-    console.debug(`[useLegalChat] Appended placeholder user (${userMsgId}) and assistant (${assistantMsgId}) messages to UI state.`);
+    console.log(`[useLegalChat] Appended placeholder user (${userMsgId}) and assistant (${assistantMsgId}) messages to UI state.`);
     setMessages(prev => [...prev, newUserMsg, newAssistantMsg]);
 
     const messageUrl = `${API_BASE}/api/chats/${threadId}/message`;
-    console.debug(`[useLegalChat] Posting query via axios request to: ${messageUrl}`);
+    console.log(`[useLegalChat] Posting query via axios request to: ${messageUrl}`);
 
     try {
       const response = await axios.post(
@@ -116,7 +116,7 @@ export function useLegalChat(threadId: string) {
         }
       );
 
-      console.debug(`[useLegalChat] SSE stream request resolved successfully. Status: ${response.status}`);
+      console.log(`[useLegalChat] SSE stream request resolved successfully. Status: ${response.status}`);
       
       const stream = response.data;
       if (!stream) {
@@ -141,7 +141,7 @@ export function useLegalChat(threadId: string) {
 
         chunkCount++;
         const decodedText = decoder.decode(value, { stream: true });
-        console.debug(`[useLegalChat] Received stream chunk #${chunkCount} (size: ${decodedText.length} chars)`);
+        console.log(`[useLegalChat] Received stream chunk #${chunkCount} (size: ${decodedText.length} chars)`);
         
         buffer += decodedText;
         const lines = buffer.split("\n");
@@ -151,22 +151,22 @@ export function useLegalChat(threadId: string) {
           const cleanLine = line.trim();
           if (!cleanLine) continue;
           
-          console.debug(`[useLegalChat] Processing SSE line: "${cleanLine}"`);
+          console.log(`[useLegalChat] Processing SSE line: "${cleanLine}"`);
 
           if (!cleanLine.startsWith("data: ")) {
-            console.debug(`[useLegalChat] Skipped non-data packet line: "${cleanLine}"`);
+            console.log(`[useLegalChat] Skipped non-data packet line: "${cleanLine}"`);
             continue;
           }
           
           const rawData = cleanLine.substring(6).trim();
           if (!rawData) {
-            console.debug("[useLegalChat] Empty data payload encountered.");
+            console.log("[useLegalChat] Empty data payload encountered.");
             continue;
           }
 
           try {
             const parsed = JSON.parse(rawData);
-            console.debug(`[useLegalChat] Successfully decoded SSE event payload of type: "${parsed.type}"`, parsed);
+            console.log(`[useLegalChat] Successfully decoded SSE event payload of type: "${parsed.type}"`, parsed);
             
             // Handle thoughts, tool calls, and observations
             if (['thought', 'tool_call', 'observation', 'error'].includes(parsed.type)) {
@@ -185,7 +185,7 @@ export function useLegalChat(threadId: string) {
                 });
               }
               
-              console.debug(`[useLegalChat] Flushing updated steps accumulator (${stepsAccumulator.length} items) to UI state.`);
+              console.log(`[useLegalChat] Flushing updated steps accumulator (${stepsAccumulator.length} items) to UI state.`);
               setMessages(prev => prev.map(m => 
                 m.id === assistantMsgId ? { ...m, steps: [...stepsAccumulator] } : m
               ));
@@ -223,7 +223,7 @@ export function useLegalChat(threadId: string) {
         m.id === assistantMsgId ? { ...m, content: `Connection error: ${error.message}` } : m
       ));
     } finally {
-      console.debug("[useLegalChat] Finalizing stream; isStreaming toggled back to false.");
+      console.log("[useLegalChat] Finalizing stream; isStreaming toggled back to false.");
       setIsStreaming(false);
     }
   };
