@@ -62,7 +62,7 @@ export function MessageContent({ msg, onCitationClick }: MessageContentProps) {
 								});
 							}
 						}}
-						className="inline-flex items-center mx-1 px-1.5 py-0.5 rounded text-[10px] font-semibold bg-emerald-100 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-400 hover:bg-emerald-200 dark:hover:bg-emerald-900/60 border border-emerald-200 dark:border-emerald-800/50 transition-colors cursor-pointer"
+						className="inline-flex items-center font-sans mx-1 px-1.5 py-0.5 rounded text-[10px] font-semibold bg-emerald-100 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-400 hover:bg-emerald-200 dark:hover:bg-emerald-900/60 border border-emerald-200 dark:border-emerald-800/50 transition-colors cursor-pointer"
 					>
 						<BookOpen className="w-3 h-3 mr-0.5" />
 						{children}
@@ -83,7 +83,7 @@ export function MessageContent({ msg, onCitationClick }: MessageContentProps) {
 	};
 
 	return (
-		<div className="prose prose-emerald dark:prose-invert max-w-none text-zinc-800 dark:text-zinc-200 text-sm leading-relaxed">
+		<div className="prose font-serif prose-emerald dark:prose-invert max-w-none text-zinc-900 dark:text-zinc-200 text-sm leading-relaxed">
 			<ReactMarkdown components={components} remarkPlugins={[remarkGfm]}>
 				{preprocessedText}
 			</ReactMarkdown>

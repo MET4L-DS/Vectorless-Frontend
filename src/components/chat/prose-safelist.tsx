@@ -4,7 +4,7 @@ import React from "react";
 // for markdown elements that are injected dynamically by ReactMarkdown.
 export function ProseSafelist() {
   return (
-    <div className="hidden prose prose-emerald dark:prose-invert">
+    <div className="hidden prose font-serif prose-emerald dark:prose-invert">
       <h1>h1</h1><h2>h2</h2><h3>h3</h3><h4>h4</h4><h5>h5</h5><h6>h6</h6>
       <p>p</p>
       <ul><li>ul li</li></ul>
