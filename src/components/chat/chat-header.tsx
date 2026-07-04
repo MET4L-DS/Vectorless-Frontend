@@ -10,6 +10,7 @@ interface ChatHeaderProps {
   setTheme: (theme: string) => void;
   mounted: boolean;
   onClearChat: () => void;
+  title?: string;
 }
 
 export function ChatHeader({
@@ -18,6 +19,7 @@ export function ChatHeader({
   setTheme,
   mounted,
   onClearChat,
+  title,
 }: ChatHeaderProps) {
   const buttonRef = useRef<HTMLButtonElement>(null);
 
@@ -73,8 +75,28 @@ export function ChatHeader({
     <header className="h-14 bg-zinc-50/50 dark:bg-zinc-900/40 border-b border-zinc-200 dark:border-zinc-800 px-4 flex items-center justify-between">
       <div className="flex items-center space-x-2">
         <div className="h-2.5 w-2.5 rounded-full bg-emerald-500 animate-pulse" />
-        <span className="text-xs font-semibold tracking-wide text-zinc-500 dark:text-zinc-400 uppercase">
-          Thread: <span className="text-zinc-950 dark:text-zinc-200 normal-case font-mono">{threadId}</span>
+        <span className="text-xs font-semibold tracking-wide text-zinc-500 dark:text-zinc-400 uppercase flex items-center space-x-2">
+          <span>Thread:</span>
+          <span className="text-zinc-950 dark:text-zinc-200 normal-case font-mono inline-flex overflow-hidden">
+            <AnimatePresence mode="popLayout" initial={false}>
+              {(title || threadId).split("").map((char, index) => (
+                <motion.span
+                  key={`${title || threadId}-${index}`}
+                  initial={{ opacity: 0, y: 10, scale: 0.8 }}
+                  animate={{ opacity: 1, y: 0, scale: 1 }}
+                  exit={{ opacity: 0, scale: 0.8, transition: { duration: 0.1 } }}
+                  transition={{
+                    duration: 0.2,
+                    ease: "easeOut",
+                    delay: index * 0.015, // Typewriter delay
+                  }}
+                  className="inline-block whitespace-pre"
+                >
+                  {char}
+                </motion.span>
+              ))}
+            </AnimatePresence>
+          </span>
         </span>
       </div>
 
@@ -112,10 +134,10 @@ export function ChatHeader({
           variant="outline"
           size="sm"
           onClick={onClearChat}
-          className="text-xs border-zinc-200 dark:border-zinc-800 hover:bg-zinc-100 dark:hover:bg-zinc-800 text-zinc-500 dark:text-zinc-400 hover:text-zinc-950 dark:hover:text-zinc-200"
+          className="text-xs border-zinc-200 dark:border-zinc-800 hover:bg-red-50 dark:hover:bg-red-950/20 hover:text-red-600 dark:hover:text-red-400 hover:border-red-200 dark:hover:border-red-950/30 text-zinc-500 dark:text-zinc-400 transition-colors"
         >
           <Trash2 className="w-3.5 h-3.5 mr-1" />
-          Clear Chat
+          Delete Chat
         </Button>
       </div>
     </header>

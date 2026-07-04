@@ -16,7 +16,8 @@ import { CitationSheet } from "@/components/chat/citation-sheet";
 import { ProseSafelist } from "@/components/chat/prose-safelist";
 
 export default function Home() {
-	const [threadId, setThreadId] = useState<string>("default-legal-session");
+	const [threadId, setThreadId] = useState<string>("");
+	const [sessionsList, setSessionsList] = useState<{id: string, title?: string}[]>([]);
 	const {
 		messages,
 		sendMessage,
@@ -24,7 +25,14 @@ export default function Home() {
 		fetchHistory,
 		clearHistory,
 		clearHistoryLocal,
-	} = useLegalChat(threadId);
+	} = useLegalChat(threadId, {
+		onTitleGenerated: (title) => {
+			console.log(`[page.tsx] Dynamic title generated: "${title}"`);
+			setSessionsList(prev => prev.map(s => 
+				s.id === threadId ? { ...s, title } : s
+			));
+		}
+	});
 	const [inputVal, setInputVal] = useState("");
 
 	// Theme state
@@ -54,6 +62,14 @@ export default function Home() {
 
 	// Sync Supabase session & handle guest anonymous login on load
 	useEffect(() => {
+		// Restore threadId from local storage
+		let savedThread = localStorage.getItem("activeThreadId");
+		if (!savedThread) {
+			savedThread = `session-${Date.now()}`;
+			localStorage.setItem("activeThreadId", savedThread);
+		}
+		setThreadId(savedThread);
+
 		supabase.auth.getSession().then(({ data: { session: currentSession } }) => {
 			setSession(currentSession);
 			setIsPending(false);
@@ -84,6 +100,51 @@ export default function Home() {
 		};
 	}, []);
 
+	// Fetch sessions list once auth is ready
+	useEffect(() => {
+		if (isPending || !session) return;
+		
+		const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+		const fetchSessions = async () => {
+			try {
+				const { data: { session: currentSession } } = await supabase.auth.getSession();
+				const token = currentSession?.access_token;
+				const res = await fetch(`${API_BASE}/api/chats/sessions`, {
+					headers: token ? { 'Authorization': `Bearer ${token}` } : {}
+				});
+				if (res.ok) {
+					const data = await res.json();
+					if (data.sessions && data.sessions.length > 0) {
+						const fetched = data.sessions;
+						let savedThread = localStorage.getItem("activeThreadId") || threadId;
+						if (savedThread) {
+							if (!fetched.some((s: any) => s.id === savedThread)) {
+								fetched.unshift({ id: savedThread, title: "New Legal Chat" });
+							}
+							setSessionsList(fetched);
+							setThreadId(savedThread);
+						} else {
+							setSessionsList(fetched);
+							setThreadId(fetched[0].id);
+							localStorage.setItem("activeThreadId", fetched[0].id);
+						}
+					} else {
+						let savedThread = localStorage.getItem("activeThreadId") || threadId;
+						if (!savedThread) {
+							savedThread = `session-${Date.now()}`;
+							localStorage.setItem("activeThreadId", savedThread);
+						}
+						setSessionsList([{ id: savedThread, title: "New Legal Chat" }]);
+						setThreadId(savedThread);
+					}
+				}
+			} catch (e) {
+				console.error("[page.tsx] Error fetching sessions list:", e);
+			}
+		};
+		fetchSessions();
+	}, [session, isPending, supabase.auth, threadId]);
+
 	// Load history on mount or thread change
 	useEffect(() => {
 		if (isPending || !session) {
@@ -93,6 +154,7 @@ export default function Home() {
 		console.log(
 			`[page.tsx] fetchHistory effect triggered. Current threadId: "${threadId}"`,
 		);
+		localStorage.setItem("activeThreadId", threadId);
 		fetchHistory();
 	}, [threadId, fetchHistory, isPending, session]);
 
@@ -126,11 +188,29 @@ export default function Home() {
 		setInputVal("");
 	};
 
-	const handleClear = () => {
+	const handleClear = async () => {
 		console.log(
-			`[page.tsx] handleClear triggered. Dispatching clearHistory API request for threadId: "${threadId}"`,
+			`[page.tsx] handleClear triggered (acting as full delete) for threadId: "${threadId}"`,
 		);
-		clearHistory();
+		try {
+			await clearHistory();
+			
+			const updatedList = sessionsList.filter(s => s.id !== threadId);
+			if (updatedList.length > 0) {
+				setSessionsList(updatedList);
+				const nextActive = updatedList[0].id;
+				setThreadId(nextActive);
+				localStorage.setItem("activeThreadId", nextActive);
+			} else {
+				const freshId = `session-${Date.now()}`;
+				setSessionsList([{ id: freshId, title: "New Legal Chat" }]);
+				setThreadId(freshId);
+				localStorage.setItem("activeThreadId", freshId);
+			}
+			clearHistoryLocal();
+		} catch (err) {
+			console.error("[page.tsx] Failed to delete session:", err);
+		}
 	};
 
 	const handleAuthSubmit = async (e: React.FormEvent) => {
@@ -173,7 +253,7 @@ export default function Home() {
 			const isAnonymous = session?.user?.is_anonymous || false;
 			const redirectTo = `${window.location.origin}/auth/callback`;
 
-			if (isAnonymous) {
+			if (isAnonymous && isRegistering) {
 				console.log("[page.tsx] Upgrading anonymous session with Google OAuth...");
 				const { error } = await supabase.auth.linkIdentity({
 					provider: "google",
@@ -221,9 +301,12 @@ export default function Home() {
 			<Sidebar
 				threadId={threadId}
 				setThreadId={setThreadId}
+				sessionsList={sessionsList}
 				onNewSession={() => {
 					const newId = `session-${Date.now()}`;
 					console.log(`[page.tsx] New Session created: "${newId}"`);
+					// Save the new session to the top of the list locally
+					setSessionsList(prev => [{id: newId}, ...prev]);
 					setThreadId(newId);
 					clearHistoryLocal();
 				}}
@@ -237,6 +320,7 @@ export default function Home() {
 				{/* Chat Header */}
 				<ChatHeader
 					threadId={threadId}
+					title={sessionsList.find(s => s.id === threadId)?.title}
 					theme={theme}
 					setTheme={setTheme}
 					mounted={mounted}
@@ -246,20 +330,70 @@ export default function Home() {
 				{/* Scrollable Message List */}
 				<div className="flex-1 overflow-y-auto p-4 space-y-6">
 					{messages.length === 0 ? (
-						<div className="h-full flex flex-col items-center justify-center text-center space-y-4 max-w-md mx-auto">
-							<div className="p-4 bg-zinc-100 dark:bg-zinc-900 rounded-full border border-zinc-200 dark:border-zinc-800 text-emerald-600 dark:text-emerald-500">
-								<Brain className="w-10 h-10" />
+						<motion.div 
+							initial={{ opacity: 0, y: 20 }}
+							animate={{ opacity: 1, y: 0 }}
+							transition={{ duration: 0.5, ease: "easeOut" }}
+							className="h-full flex flex-col items-center justify-center text-center space-y-8 max-w-2xl mx-auto py-10"
+						>
+							<div className="space-y-4 flex flex-col items-center">
+								<motion.div 
+									initial={{ scale: 0.8, opacity: 0 }}
+									animate={{ scale: 1, opacity: 1 }}
+									transition={{ delay: 0.2, duration: 0.5, type: "spring", bounce: 0.5 }}
+									className="p-5 bg-emerald-50 dark:bg-emerald-950/30 rounded-full border border-emerald-200/50 dark:border-emerald-800/30 text-emerald-600 dark:text-emerald-500 shadow-sm"
+								>
+									<Brain className="w-12 h-12" />
+								</motion.div>
+								<motion.h2 
+									initial={{ opacity: 0, y: 10 }}
+									animate={{ opacity: 1, y: 0 }}
+									transition={{ delay: 0.3, duration: 0.4 }}
+									className="text-2xl sm:text-3xl font-bold text-zinc-900 dark:text-white tracking-tight"
+								>
+									Ask an Indian Criminal Law Query
+								</motion.h2>
+								<motion.p 
+									initial={{ opacity: 0, y: 10 }}
+									animate={{ opacity: 1, y: 0 }}
+									transition={{ delay: 0.4, duration: 0.4 }}
+									className="text-base text-zinc-500 dark:text-zinc-400 max-w-lg mx-auto leading-relaxed"
+								>
+									Enter your query scenario. The autonomous Legal-Assist Agent will search the new statutes (BNS, BNSS, BSA) and police SOP guidelines to resolve your query with exact citations.
+								</motion.p>
 							</div>
-							<h2 className="text-xl font-bold text-zinc-900 dark:text-white">
-								Ask an Indian Criminal Law Query
-							</h2>
-							<p className="text-sm text-zinc-500 dark:text-zinc-400">
-								Enter your query scenario. The autonomous ReAct
-								agent will search the statutes (BNS, BNSS, BSA)
-								and police SOP guidelines to resolve your query
-								with exact citations.
-							</p>
-						</div>
+
+							<motion.div 
+								initial={{ opacity: 0, y: 20 }}
+								animate={{ opacity: 1, y: 0 }}
+								transition={{ delay: 0.6, duration: 0.5 }}
+								className="w-full pt-6"
+							>
+								<div className="grid grid-cols-1 sm:grid-cols-2 gap-3 w-full">
+									{[
+										"What is the punishment for robbery under BNS?",
+										"When can police arrest without a warrant?",
+										"What are the rights of an arrested person?",
+										"Explain the right to private defence of property."
+									].map((suggestion, idx) => (
+										<button
+											key={idx}
+											onClick={() => {
+												setInputVal(suggestion);
+												setTimeout(() => {
+													sendMessage(suggestion);
+													setInputVal("");
+												}, 50);
+											}}
+											className="p-4 rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900/50 hover:bg-zinc-50 dark:hover:bg-zinc-800 text-left text-sm text-zinc-700 dark:text-zinc-300 transition-all hover:border-emerald-300 dark:hover:border-emerald-700 hover:shadow-sm flex items-center group"
+										>
+											<span className="flex-1">{suggestion}</span>
+											<span className="opacity-0 group-hover:opacity-100 transition-opacity text-emerald-500">→</span>
+										</button>
+									))}
+								</div>
+							</motion.div>
+						</motion.div>
 					) : (
 						<div className="space-y-6 max-w-4xl mx-auto">
 							{messages.map((msg, index) => (
@@ -271,6 +405,7 @@ export default function Home() {
 										index === messages.length - 1
 									}
 									onCitationClick={handleCitationClick}
+									onFollowUpClick={sendMessage}
 								/>
 							))}
 							<div ref={scrollContainerRef} />

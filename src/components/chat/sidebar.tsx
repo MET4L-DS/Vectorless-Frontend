@@ -7,6 +7,7 @@ import { SidebarUserProfile } from "./sidebar-user-profile";
 interface SidebarProps {
   threadId: string;
   setThreadId: (id: string) => void;
+  sessionsList?: {id: string, title?: string}[];
   onNewSession: () => void;
   session: any;
   onSignOut: () => void;
@@ -16,6 +17,7 @@ interface SidebarProps {
 export function Sidebar({
   threadId,
   setThreadId,
+  sessionsList = [],
   onNewSession,
   session,
   onSignOut,
@@ -27,7 +29,7 @@ export function Sidebar({
         <div className="p-4 border-b border-zinc-200 dark:border-zinc-800 flex items-center justify-between">
           <div className="flex items-center space-x-2">
             <Scale className="w-5 h-5 text-emerald-600 dark:text-emerald-500" />
-            <span className="font-bold text-zinc-950 dark:text-white tracking-tight">Vectorless-RAG</span>
+            <span className="font-bold text-zinc-950 dark:text-white tracking-tight">Legal-Assist Agent</span>
           </div>
         </div>
         
@@ -44,6 +46,7 @@ export function Sidebar({
         <SidebarSessionList
           threadId={threadId}
           setThreadId={setThreadId}
+          sessionsList={sessionsList}
         />
       </div>
 

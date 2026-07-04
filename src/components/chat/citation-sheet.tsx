@@ -64,7 +64,7 @@ export function CitationSheet({
               <div className="pt-4 border-t border-zinc-200 dark:border-zinc-800 text-xs text-zinc-500 space-y-2">
                 <div className="flex items-start space-x-2">
                   <CheckCircle className="w-4 h-4 text-emerald-600 dark:text-emerald-500 shrink-0" />
-                  <p>This document is verified and served by the Vectorless-RAG hierarchical parser.</p>
+                  <p>This document is verified and served by the Legal-Assist Agent hierarchical parser.</p>
                 </div>
                 <div className="flex items-start space-x-2">
                   <Scale className="w-4 h-4 text-emerald-600 dark:text-emerald-500 shrink-0" />

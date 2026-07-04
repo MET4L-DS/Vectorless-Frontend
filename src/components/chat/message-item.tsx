@@ -10,6 +10,7 @@ interface MessageItemProps {
 	isStreaming: boolean;
 	isLastMessage: boolean;
 	onCitationClick: (citation: Citation) => void;
+	onFollowUpClick?: (question: string) => void;
 }
 
 export function MessageItem({
@@ -17,6 +18,7 @@ export function MessageItem({
 	isStreaming,
 	isLastMessage,
 	onCitationClick,
+	onFollowUpClick,
 }: MessageItemProps) {
 	// Add debugging logs to track mounts and updates for reveal animations
 	React.useEffect(() => {
@@ -108,7 +110,9 @@ export function MessageItem({
 							}}
 						>
 							{msg.role === "user" ? (
-								<p className="text-sm leading-relaxed">{msg.content}</p>
+								<p className="text-sm leading-relaxed">
+									{msg.content}
+								</p>
 							) : (
 								<MessageContent
 									msg={msg}
@@ -119,6 +123,48 @@ export function MessageItem({
 						</motion.div>
 					)}
 				</AnimatePresence>
+
+				{/* Action Items */}
+				{msg.role === "assistant" &&
+					msg.action_items &&
+					msg.action_items.length > 0 && (
+						<div className="mt-4 p-4 rounded-xl bg-amber-500/10 dark:bg-amber-500/5 border border-amber-500/20 text-xs">
+							<div className="flex items-center space-x-2 font-semibold text-amber-800 dark:text-amber-400 mb-2">
+								<span className="text-sm">📋</span>
+								<span>Recommended Actions</span>
+							</div>
+							<ul className="space-y-1.5 list-disc list-inside text-zinc-700 dark:text-zinc-300">
+								{msg.action_items.map((item, idx) => (
+									<li key={idx}>{item}</li>
+								))}
+							</ul>
+						</div>
+					)}
+
+				{/* Suggested Follow-up Questions */}
+				{msg.role === "assistant" &&
+					msg.suggested_follow_up_questions &&
+					msg.suggested_follow_up_questions.length > 0 &&
+					!isStreaming && (
+						<div className="mt-4 space-y-2">
+							<p className="text-[10px] font-semibold text-zinc-400 dark:text-zinc-500 uppercase tracking-wider">
+								Suggested Questions
+							</p>
+							<div className="flex flex-wrap gap-2">
+								{msg.suggested_follow_up_questions.map(
+									(q, idx) => (
+										<button
+											key={idx}
+											onClick={() => onFollowUpClick?.(q)}
+											className="px-3.5 py-2 bg-zinc-100 hover:bg-zinc-200/80 dark:bg-zinc-800/60 dark:hover:bg-zinc-800 text-left text-xs font-medium rounded-xl text-emerald-700 dark:text-emerald-400 border border-zinc-200 dark:border-zinc-800 transition-all shadow-xs"
+										>
+											{q}
+										</button>
+									),
+								)}
+							</div>
+						</div>
+					)}
 
 				{/* Citations Footer list */}
 				{msg.role === "assistant" &&

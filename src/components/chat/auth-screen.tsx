@@ -38,7 +38,7 @@ export function AuthScreen({
               <Scale className="w-8 h-8" />
             </div>
           </div>
-          <CardTitle className="text-2xl font-bold text-zinc-950 dark:text-white">Vectorless-RAG Legal Hub</CardTitle>
+          <CardTitle className="text-2xl font-bold text-zinc-950 dark:text-white">Legal-Assist Agent Hub</CardTitle>
           <CardDescription className="text-zinc-500 dark:text-zinc-400">
             Access the legal statutory & police SOP query resolver.
           </CardDescription>

@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useRef } from 'react';
 import axios from 'axios';
 import { createClient } from '@/utils/supabase/client';
 
@@ -21,18 +21,26 @@ export interface ChatMessage {
   steps?: StreamStep[];
   citations?: Citation[];
   key_provisions?: string[];
+  suggested_follow_up_questions?: string[];
+  action_items?: string[];
   latency_ms?: number;
   isHistory?: boolean;
+}
+
+export interface UseLegalChatOptions {
+  onTitleGenerated?: (title: string) => void;
 }
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 const supabase = createClient();
 
-export function useLegalChat(threadId: string) {
+export function useLegalChat(threadId: string, options?: UseLegalChatOptions) {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [isStreaming, setIsStreaming] = useState(false);
+  const abortControllerRef = useRef<AbortController | null>(null);
 
   const fetchHistory = useCallback(async () => {
+    if (!threadId) return;
     const historyUrl = `${API_BASE}/api/chats/${threadId}/history`;
     console.log(`[useLegalChat] fetchHistory initiated for URL: ${historyUrl}`);
     try {
@@ -58,6 +66,8 @@ export function useLegalChat(threadId: string) {
           steps: m.steps || [],
           citations: m.citations || [],
           key_provisions: m.key_provisions || [],
+          suggested_follow_up_questions: m.suggested_follow_up_questions || [],
+          action_items: m.action_items || [],
           isHistory: true
         };
       });
@@ -73,11 +83,16 @@ export function useLegalChat(threadId: string) {
   }, [threadId]);
 
   const clearHistory = useCallback(async () => {
+    if (!threadId) return;
     const clearUrl = `${API_BASE}/api/chats/${threadId}/history`;
     console.log(`[useLegalChat] clearHistory initiated. Issuing DELETE to: ${clearUrl}`);
     try {
       const { data: { session } } = await supabase.auth.getSession();
       const token = session?.access_token;
+
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+      }
 
       const response = await axios.delete(clearUrl, {
         headers: {
@@ -96,13 +111,19 @@ export function useLegalChat(threadId: string) {
   }, [threadId]);
 
   const sendMessage = async (userMessage: string) => {
-    if (!userMessage.trim() || isStreaming) {
+    if (!threadId || !userMessage.trim() || isStreaming) {
       console.warn(`[useLegalChat] Blocked sendMessage call. Message empty or stream already in progress. isStreaming: ${isStreaming}`);
       return;
     }
     
     console.log(`[useLegalChat] sendMessage call initiated for thread: ${threadId}. Message length: ${userMessage.length}`);
     setIsStreaming(true);
+    
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+    }
+    const abortController = new AbortController();
+    abortControllerRef.current = abortController;
     
     const userMsgId = crypto.randomUUID();
     const newUserMsg: ChatMessage = { id: userMsgId, role: 'user', content: userMessage };
@@ -135,7 +156,8 @@ export function useLegalChat(threadId: string) {
             ...(token ? { 'Authorization': `Bearer ${token}` } : {})
           },
           responseType: 'stream',
-          adapter: 'fetch' // Crucial to allow ReadableStream body handling in browser environments
+          adapter: 'fetch', // Crucial to allow ReadableStream body handling in browser environments
+          signal: abortController.signal
         }
       );
 
@@ -191,6 +213,14 @@ export function useLegalChat(threadId: string) {
             const parsed = JSON.parse(rawData);
             console.log(`[useLegalChat] Successfully decoded SSE event payload of type: "${parsed.type}"`, parsed);
             
+            // Handle title generated event
+            if (parsed.type === 'title_generated') {
+              console.log("[useLegalChat] Title generated event:", parsed.title);
+              if (options?.onTitleGenerated) {
+                options.onTitleGenerated(parsed.title);
+              }
+            }
+            
             // Handle thoughts, tool calls, and observations
             if (['thought', 'tool_call', 'observation', 'error'].includes(parsed.type)) {
               if (parsed.type === 'tool_call') {
@@ -228,6 +258,8 @@ export function useLegalChat(threadId: string) {
                   content: parsed.answer_text,
                   citations: parsed.citations,
                   key_provisions: parsed.key_provisions,
+                  suggested_follow_up_questions: parsed.suggested_follow_up_questions || [],
+                  action_items: parsed.action_items || [],
                   latency_ms: parsed.latency_ms
                 } : m
               ));
@@ -238,6 +270,10 @@ export function useLegalChat(threadId: string) {
         }
       }
     } catch (error: any) {
+      if (axios.isCancel(error) || error.name === 'AbortError') {
+        console.log("[useLegalChat] Streaming aborted by client controller.");
+        return;
+      }
       console.error("[useLegalChat] Streaming execution encountered an unhandled error:", error);
       if (error.response) {
         console.error("[useLegalChat] Axios error response status context:", error.response.status, error.response.data);
@@ -253,6 +289,9 @@ export function useLegalChat(threadId: string) {
 
   const clearHistoryLocal = useCallback(() => {
     console.log(`[useLegalChat] Local message state cleared (no DB request) for threadId: ${threadId}`);
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+    }
     setMessages([]);
   }, [threadId]);
 
