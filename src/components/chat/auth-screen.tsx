@@ -54,7 +54,7 @@ export function AuthScreen({
                   value={authName}
                   onChange={(e) => setAuthName(e.target.value)}
                   required
-                  className="bg-zinc-50 dark:bg-zinc-850 border-zinc-250 dark:border-zinc-800 focus-visible:ring-emerald-500"
+                  className="bg-zinc-50 dark:bg-zinc-800 border-zinc-200 dark:border-zinc-800 focus-visible:ring-emerald-500"
                 />
               </div>
             )}
@@ -66,7 +66,7 @@ export function AuthScreen({
                 value={authEmail}
                 onChange={(e) => setAuthEmail(e.target.value)}
                 required
-                className="bg-zinc-50 dark:bg-zinc-850 border-zinc-250 dark:border-zinc-800 focus-visible:ring-emerald-500"
+                className="bg-zinc-50 dark:bg-zinc-800 border-zinc-200 dark:border-zinc-800 focus-visible:ring-emerald-500"
               />
             </div>
             <div className="space-y-1">
@@ -77,7 +77,7 @@ export function AuthScreen({
                 value={authPassword}
                 onChange={(e) => setAuthPassword(e.target.value)}
                 required
-                className="bg-zinc-50 dark:bg-zinc-850 border-zinc-250 dark:border-zinc-800 focus-visible:ring-emerald-500"
+                className="bg-zinc-50 dark:bg-zinc-800 border-zinc-200 dark:border-zinc-800 focus-visible:ring-emerald-500"
               />
             </div>
 

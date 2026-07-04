@@ -17,7 +17,7 @@ export function ChatInput({
   onSubmit,
 }: ChatInputProps) {
   return (
-    <div className="p-4 border-t border-zinc-200 dark:border-zinc-850 bg-zinc-50/50 dark:bg-zinc-900/20">
+    <div className="p-4 border-t border-zinc-200 dark:border-zinc-800 bg-zinc-50/50 dark:bg-zinc-900/20">
       <form onSubmit={onSubmit} className="max-w-3xl mx-auto flex items-center space-x-2">
         <Input
           type="text"

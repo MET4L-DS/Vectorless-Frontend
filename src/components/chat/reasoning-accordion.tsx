@@ -53,7 +53,7 @@ export function ReasoningAccordion({
     >
       <Accordion className="w-full border-none">
         <AccordionItem value="thinking" className="border-none">
-          <AccordionTrigger className="py-1 px-3 text-xs bg-zinc-100 hover:bg-zinc-200/50 dark:bg-zinc-900 dark:hover:bg-zinc-850 rounded-lg text-emerald-700 dark:text-emerald-500 font-semibold flex items-center hover:no-underline border border-zinc-250/65 dark:border-zinc-800/40">
+          <AccordionTrigger className="py-1 px-3 text-xs bg-zinc-100 hover:bg-zinc-200/50 dark:bg-zinc-900 dark:hover:bg-zinc-800 rounded-lg text-emerald-700 dark:text-emerald-500 font-semibold flex items-center hover:no-underline border border-zinc-200/65 dark:border-zinc-800/40">
             <span className="flex items-center space-x-2 overflow-hidden w-full">
               {/* Only animate-spin loader if the message is actively streaming and is the last assistant response */}
               {isActive && (

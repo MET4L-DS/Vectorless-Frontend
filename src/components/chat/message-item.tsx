@@ -55,7 +55,7 @@ export function MessageItem({
 				className={`max-w-[85%] rounded-2xl px-8 py-6 border transition-all ${
 					msg.role === "user"
 						? "bg-zinc-100 dark:bg-zinc-900 border-zinc-200 dark:border-zinc-800 text-zinc-950 dark:text-white rounded-br-none"
-						: "w-full bg-zinc-50/50 dark:bg-zinc-900/40 border-zinc-200 dark:border-zinc-850 text-zinc-800 dark:text-zinc-200 rounded-bl-none"
+						: "w-full bg-zinc-50/50 dark:bg-zinc-900/40 border-zinc-200 dark:border-zinc-800 text-zinc-800 dark:text-zinc-200 rounded-bl-none"
 				}`}
 			>
 				{/* Intermediate Reasoning Accordion (Only for Assistant) */}

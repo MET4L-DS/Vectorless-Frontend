@@ -19,7 +19,7 @@ export function ChatHeader({
   onClearChat,
 }: ChatHeaderProps) {
   return (
-    <header className="h-14 bg-zinc-50/50 dark:bg-zinc-900/40 border-b border-zinc-200 dark:border-zinc-850 px-4 flex items-center justify-between">
+    <header className="h-14 bg-zinc-50/50 dark:bg-zinc-900/40 border-b border-zinc-200 dark:border-zinc-800 px-4 flex items-center justify-between">
       <div className="flex items-center space-x-2">
         <div className="h-2.5 w-2.5 rounded-full bg-emerald-500 animate-pulse" />
         <span className="text-xs font-semibold tracking-wide text-zinc-500 dark:text-zinc-400 uppercase">
@@ -38,7 +38,7 @@ export function ChatHeader({
               console.log(`[chat-header.tsx] Theme toggle clicked. Switching from "${theme}" to "${targetTheme}"`);
               setTheme(targetTheme);
             }}
-            className="h-8 w-8 p-0 border-zinc-200 dark:border-zinc-800 hover:bg-zinc-100 dark:hover:bg-zinc-850 text-zinc-500 dark:text-zinc-400 overflow-hidden relative"
+            className="h-8 w-8 p-0 border-zinc-200 dark:border-zinc-800 hover:bg-zinc-100 dark:hover:bg-zinc-800 text-zinc-500 dark:text-zinc-400 overflow-hidden relative"
             title="Toggle Theme"
           >
             <AnimatePresence mode="wait" initial={false}>
@@ -64,7 +64,7 @@ export function ChatHeader({
           variant="outline"
           size="sm"
           onClick={onClearChat}
-          className="text-xs border-zinc-200 dark:border-zinc-800 hover:bg-zinc-100 dark:hover:bg-zinc-850 text-zinc-500 dark:text-zinc-400 hover:text-zinc-950 dark:hover:text-zinc-200"
+          className="text-xs border-zinc-200 dark:border-zinc-800 hover:bg-zinc-100 dark:hover:bg-zinc-800 text-zinc-500 dark:text-zinc-400 hover:text-zinc-950 dark:hover:text-zinc-200"
         >
           <Trash2 className="w-3.5 h-3.5 mr-1" />
           Clear Chat

@@ -22,7 +22,7 @@ export function SidebarSessionList({
           className={`w-full text-left p-2.5 rounded-lg flex items-center space-x-2 transition-colors ${
             threadId === "default-legal-session" 
               ? "bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200/50 dark:border-emerald-900/60 text-emerald-950 dark:text-white" 
-              : "hover:bg-zinc-200/50 dark:hover:bg-zinc-850 text-zinc-600 dark:text-zinc-400"
+              : "hover:bg-zinc-200/50 dark:hover:bg-zinc-800 text-zinc-600 dark:text-zinc-400"
           }`}
         >
           <FileText className="w-3.5 h-3.5" />
