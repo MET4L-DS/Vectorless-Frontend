@@ -12,11 +12,61 @@ interface MessageContentProps {
 	onCitationClick: (citation: Citation) => void;
 }
 
+// Helper to extract raw text content from a React element tree
+const extractText = (children: any): string => {
+	let text = "";
+	React.Children.forEach(children, (child) => {
+		if (typeof child === "string" || typeof child === "number") {
+			text += child;
+		} else if (
+			React.isValidElement(child) &&
+			child.props &&
+			(child.props as any).children
+		) {
+			text += extractText((child.props as any).children);
+		}
+	});
+	return text;
+};
+
 export function MessageContent({
 	msg,
 	isStreaming = false,
 	onCitationClick,
 }: MessageContentProps) {
+	// A sub-component to track typing activity per block and animate an underline
+	const StreamingBlock = React.useCallback(
+		({ children, Component = "p", ...props }: any) => {
+			const [isTyping, setIsTyping] = React.useState(true);
+
+			// Extract the raw text from the children array.
+			// This string will ONLY change if the actual text inside THIS specific block is currently being typed.
+			const textContent = React.useMemo(() => extractText(children), [children]);
+
+			React.useEffect(() => {
+				setIsTyping(true);
+				const t = setTimeout(() => setIsTyping(false), 800);
+				return () => clearTimeout(t);
+			}, [textContent]);
+
+			return (
+				<Component {...props}>
+					<span
+						className="transition-colors duration-1000 ease-out underline decoration-2 underline-offset-4"
+						style={{
+							textDecorationColor: isTyping
+								? "rgba(16, 185, 129, 0.6)"
+								: "transparent",
+						}}
+					>
+						{children}
+					</span>
+				</Component>
+			);
+		},
+		[],
+	);
+
 	const [displayedLength, setDisplayedLength] = React.useState(
 		msg.isHistory ? msg.content?.length || 0 : 0,
 	);
@@ -69,16 +119,24 @@ export function MessageContent({
 	const components = React.useMemo(
 		() => ({
 			p: ({ node, children, ...props }: any) => (
-				<p {...props}>{children}</p>
+				<StreamingBlock Component="p" {...props}>
+					{children}
+				</StreamingBlock>
 			),
 			li: ({ node, children, ...props }: any) => (
-				<li {...props}>{children}</li>
+				<StreamingBlock Component="li" {...props}>
+					{children}
+				</StreamingBlock>
 			),
 			h3: ({ node, children, ...props }: any) => (
-				<h3 {...props}>{children}</h3>
+				<StreamingBlock Component="h3" {...props}>
+					{children}
+				</StreamingBlock>
 			),
 			h4: ({ node, children, ...props }: any) => (
-				<h4 {...props}>{children}</h4>
+				<StreamingBlock Component="h4" {...props}>
+					{children}
+				</StreamingBlock>
 			),
 			a: ({ href, children }: any) => {
 				if (href === "#glow-cursor") {
