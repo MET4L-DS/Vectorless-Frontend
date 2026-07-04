@@ -3,15 +3,46 @@ import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { BookOpen, Scale } from "lucide-react";
 import { ChatMessage, Citation } from "@/hooks/useLegalChat";
+import { GlowCursor } from "./glow-cursor";
+import { motion } from "framer-motion";
 
 interface MessageContentProps {
 	msg: ChatMessage;
+	isStreaming?: boolean;
 	onCitationClick: (citation: Citation) => void;
 }
 
-export function MessageContent({ msg, onCitationClick }: MessageContentProps) {
-	const text = msg.content;
-	if (!text) return null;
+export function MessageContent({
+	msg,
+	isStreaming = false,
+	onCitationClick,
+}: MessageContentProps) {
+	const [displayedLength, setDisplayedLength] = React.useState(
+		msg.isHistory ? (msg.content?.length || 0) : 0
+	);
+
+	React.useEffect(() => {
+		if (!msg.content) return;
+		
+		if (isStreaming || displayedLength < msg.content.length) {
+			const interval = setInterval(() => {
+				setDisplayedLength(prev => {
+					const next = prev + 15; // smooth 1500 chars/sec reveal speed
+					if (next >= msg.content!.length) {
+						clearInterval(interval);
+						return msg.content!.length;
+					}
+					return next;
+				});
+			}, 10);
+			return () => clearInterval(interval);
+		} else {
+			setDisplayedLength(msg.content.length);
+		}
+	}, [msg.content, isStreaming]);
+
+	const isVisuallyStreaming = isStreaming || displayedLength < (msg.content?.length || 0);
+	const textToRender = msg.content?.substring(0, displayedLength) || "";
 
 	// Convert [Source: BNS_S309, BNS_S310] to multiple markdown links using custom scheme #citation-
 	const preprocessCitations = (content: string) => {
@@ -29,10 +60,55 @@ export function MessageContent({ msg, onCitationClick }: MessageContentProps) {
 		);
 	};
 
-	const preprocessedText = preprocessCitations(text);
+	const preprocessedText = preprocessCitations(
+		textToRender + (isVisuallyStreaming ? " [glow-cursor](#glow-cursor)" : "")
+	);
 
-	const components = {
+	const components = React.useMemo(() => ({
+		p: ({ node, children, ...props }: any) => (
+			<motion.p
+				initial={{ opacity: 0, y: 10 }}
+				animate={{ opacity: 1, y: 0 }}
+				transition={{ duration: 0.4, ease: "easeOut" }}
+				{...props}
+			>
+				{children}
+			</motion.p>
+		),
+		li: ({ node, children, ...props }: any) => (
+			<motion.li
+				initial={{ opacity: 0, y: 10 }}
+				animate={{ opacity: 1, y: 0 }}
+				transition={{ duration: 0.4, ease: "easeOut" }}
+				{...props}
+			>
+				{children}
+			</motion.li>
+		),
+		h3: ({ node, children, ...props }: any) => (
+			<motion.h3
+				initial={{ opacity: 0, y: 10 }}
+				animate={{ opacity: 1, y: 0 }}
+				transition={{ duration: 0.4, ease: "easeOut" }}
+				{...props}
+			>
+				{children}
+			</motion.h3>
+		),
+		h4: ({ node, children, ...props }: any) => (
+			<motion.h4
+				initial={{ opacity: 0, y: 10 }}
+				animate={{ opacity: 1, y: 0 }}
+				transition={{ duration: 0.4, ease: "easeOut" }}
+				{...props}
+			>
+				{children}
+			</motion.h4>
+		),
 		a: ({ href, children }: any) => {
+			if (href === "#glow-cursor") {
+				return <GlowCursor key="glow-cursor" />;
+			}
 			if (href && href.startsWith("#citation-")) {
 				const citationId = href.replace("#citation-", "");
 				const matchedCitation = (msg.citations || []).find(
@@ -80,7 +156,9 @@ export function MessageContent({ msg, onCitationClick }: MessageContentProps) {
 				</a>
 			);
 		},
-	};
+	}), [msg.citations, onCitationClick]);
+
+	if (!textToRender) return null;
 
 	return (
 		<div className="prose font-serif prose-emerald dark:prose-invert max-w-none text-zinc-900 dark:text-zinc-200 text-sm leading-relaxed">
@@ -93,21 +171,14 @@ export function MessageContent({ msg, onCitationClick }: MessageContentProps) {
 						<Scale className="w-4 h-4 mr-2" />
 						Key Provisions
 					</h4>
-					<ul className="space-y-1 mb-0">
-						{msg.key_provisions.map((provision, idx) => (
-							<li
-								key={idx}
-								className="text-zinc-700 dark:text-zinc-300"
-							>
-								<ReactMarkdown
-									components={components}
-									remarkPlugins={[remarkGfm]}
-								>
-									{preprocessCitations(provision)}
-								</ReactMarkdown>
-							</li>
-						))}
-					</ul>
+					<div className="text-zinc-700 dark:text-zinc-300 [&>ul]:mb-0 [&>ul]:mt-2 [&>ul>li]:my-1">
+						<ReactMarkdown
+							components={components}
+							remarkPlugins={[remarkGfm]}
+						>
+							{preprocessCitations(msg.key_provisions.join('\n'))}
+						</ReactMarkdown>
+					</div>
 				</div>
 			)}
 		</div>

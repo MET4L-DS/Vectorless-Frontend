@@ -20,6 +20,7 @@ export interface ChatMessage {
   citations?: Citation[];
   key_provisions?: string[];
   latency_ms?: number;
+  isHistory?: boolean;
 }
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
@@ -46,7 +47,8 @@ export function useLegalChat(threadId: string) {
           content: m.content,
           steps: m.steps || [],
           citations: m.citations || [],
-          key_provisions: m.key_provisions || []
+          key_provisions: m.key_provisions || [],
+          isHistory: true
         };
       });
 

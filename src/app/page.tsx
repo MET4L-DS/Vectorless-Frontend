@@ -137,14 +137,14 @@ export default function Home() {
 		}
 	};
 
-	const handleCitationClick = (citation: Citation) => {
+	const handleCitationClick = React.useCallback((citation: Citation) => {
 		console.log(
 			"[page.tsx] Citation clicked. Selecting citation & opening sheet:",
 			citation,
 		);
 		setSelectedCitation(citation);
 		setIsSheetOpen(true);
-	};
+	}, []);
 
 	// Auth Screen
 	if (!isPending && !session) {
