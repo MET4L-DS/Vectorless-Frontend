@@ -19,9 +19,10 @@ export function ReasoningAccordion({
     return null;
   }
 
+  const isActive = isStreaming && isLastMessage;
+
   const getReasoningLabel = () => {
     const lastStep = steps[steps.length - 1];
-    const isActive = isStreaming && isLastMessage;
     
     if (isActive) {
       if (lastStep.type === "thought") {
@@ -44,13 +45,18 @@ export function ReasoningAccordion({
   };
 
   return (
-    <div className="mb-4">
+    <motion.div 
+      className="mb-4"
+      initial={{ scale: 0.95, opacity: 0, y: 10 }}
+      animate={{ scale: 1, opacity: 1, y: 0 }}
+      transition={{ type: "spring", stiffness: 260, damping: 20 }}
+    >
       <Accordion className="w-full border-none">
         <AccordionItem value="thinking" className="border-none">
           <AccordionTrigger className="py-1 px-3 text-xs bg-zinc-100 hover:bg-zinc-200/50 dark:bg-zinc-900 dark:hover:bg-zinc-850 rounded-lg text-amber-700 dark:text-amber-500 font-semibold flex items-center hover:no-underline border border-zinc-250/65 dark:border-zinc-800/40">
             <span className="flex items-center space-x-2 overflow-hidden w-full">
               {/* Only animate-spin loader if the message is actively streaming and is the last assistant response */}
-              {isStreaming && isLastMessage && (
+              {isActive && (
                 <Loader2 className="w-3.5 h-3.5 animate-spin mr-1 text-amber-600 dark:text-amber-500 shrink-0" />
               )}
               <span className="inline-block relative h-4 w-full overflow-hidden">
@@ -58,10 +64,26 @@ export function ReasoningAccordion({
                   <motion.span
                     key={getReasoningLabel()}
                     initial={{ y: 8, opacity: 0 }}
-                    animate={{ y: 0, opacity: 1 }}
+                    animate={{ 
+                      y: 0, 
+                      opacity: 1,
+                      backgroundPosition: isActive ? ["200% 0", "-200% 0"] : "0% 0"
+                    }}
                     exit={{ y: -8, opacity: 0 }}
-                    transition={{ duration: 0.15, ease: "easeInOut" }}
-                    className="absolute left-0 top-0 block truncate w-full text-[11px] md:text-xs"
+                    transition={
+                      isActive 
+                        ? { 
+                            y: { duration: 0.15, ease: "easeInOut" },
+                            opacity: { duration: 0.15, ease: "easeInOut" },
+                            backgroundPosition: { repeat: Infinity, duration: 2, ease: "linear" }
+                          }
+                        : { duration: 0.15, ease: "easeInOut" }
+                    }
+                    className={`absolute left-0 top-0 block truncate w-full text-[11px] md:text-xs ${
+                      isActive 
+                        ? "bg-clip-text text-transparent bg-[linear-gradient(110deg,#b45309,45%,#fcd34d,55%,#b45309)] dark:bg-[linear-gradient(110deg,#d97706,45%,#fef3c7,55%,#d97706)] bg-[length:200%_100%]" 
+                        : "text-amber-700 dark:text-amber-500"
+                    }`}
                   >
                     {getReasoningLabel()}
                   </motion.span>
@@ -106,6 +128,6 @@ export function ReasoningAccordion({
           </AccordionContent>
         </AccordionItem>
       </Accordion>
-    </div>
+    </motion.div>
   );
 }

@@ -193,6 +193,37 @@ export function MessageContent({
 		[msg.citations, onCitationClick],
 	);
 
+	const keyProvisionsComponents = React.useMemo(
+		() => ({
+			...components,
+			ul: ({ node, children, ...props }: any) => (
+				<motion.ul
+					initial="hidden"
+					animate="visible"
+					variants={{
+						hidden: {},
+						visible: { transition: { staggerChildren: 0.15 } },
+					}}
+					{...props}
+				>
+					{children}
+				</motion.ul>
+			),
+			li: ({ node, children, ...props }: any) => (
+				<motion.li
+					variants={{
+						hidden: { opacity: 0, y: 10 },
+						visible: { opacity: 1, y: 0, transition: { duration: 0.4 } },
+					}}
+					{...props}
+				>
+					{children}
+				</motion.li>
+			),
+		}),
+		[components],
+	);
+
 	if (!textToRender) return null;
 
 	return (
@@ -201,20 +232,25 @@ export function MessageContent({
 				{preprocessedText}
 			</ReactMarkdown>
 			{msg.key_provisions && msg.key_provisions.length > 0 && (
-				<div className="mt-4 p-4 bg-emerald-50/50 dark:bg-emerald-950/20 border border-emerald-100 dark:border-emerald-900/50 rounded-lg">
+				<motion.div
+					initial={{ opacity: 0, y: 15 }}
+					animate={{ opacity: 1, y: 0 }}
+					transition={{ duration: 0.4 }}
+					className="mt-4 p-4 bg-emerald-50/50 dark:bg-emerald-950/20 border border-emerald-100 dark:border-emerald-900/50 rounded-lg"
+				>
 					<h4 className="text-emerald-800 dark:text-emerald-400 font-semibold mb-2 flex items-center">
 						<Scale className="w-4 h-4 mr-2" />
 						Key Provisions
 					</h4>
 					<div className="text-zinc-700 dark:text-zinc-300 [&>ul]:mb-0 [&>ul]:mt-2 [&>ul>li]:my-1">
 						<ReactMarkdown
-							components={components}
+							components={keyProvisionsComponents}
 							remarkPlugins={[remarkGfm]}
 						>
 							{preprocessCitations(msg.key_provisions.join("\n"))}
 						</ReactMarkdown>
 					</div>
-				</div>
+				</motion.div>
 			)}
 		</div>
 	);
