@@ -1,5 +1,6 @@
 import { useState, useCallback } from 'react';
 import axios from 'axios';
+import { createClient } from '@/utils/supabase/client';
 
 export interface Citation {
   node_id: string;
@@ -25,6 +26,7 @@ export interface ChatMessage {
 }
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+const supabase = createClient();
 
 export function useLegalChat(threadId: string) {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
@@ -34,7 +36,14 @@ export function useLegalChat(threadId: string) {
     const historyUrl = `${API_BASE}/api/chats/${threadId}/history`;
     console.log(`[useLegalChat] fetchHistory initiated for URL: ${historyUrl}`);
     try {
-      const response = await axios.get(historyUrl);
+      const { data: { session } } = await supabase.auth.getSession();
+      const token = session?.access_token;
+      
+      const response = await axios.get(historyUrl, {
+        headers: {
+          ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+        }
+      });
       console.log(`[useLegalChat] fetchHistory responded successfully. HTTP Status: ${response.status}`);
       
       const data = response.data;
@@ -67,7 +76,14 @@ export function useLegalChat(threadId: string) {
     const clearUrl = `${API_BASE}/api/chats/${threadId}/history`;
     console.log(`[useLegalChat] clearHistory initiated. Issuing DELETE to: ${clearUrl}`);
     try {
-      const response = await axios.delete(clearUrl);
+      const { data: { session } } = await supabase.auth.getSession();
+      const token = session?.access_token;
+
+      const response = await axios.delete(clearUrl, {
+        headers: {
+          ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+        }
+      });
       console.log(`[useLegalChat] clearHistory responded successfully. HTTP Status: ${response.status}`, response.data);
       setMessages([]);
     } catch (e: any) {
@@ -106,13 +122,17 @@ export function useLegalChat(threadId: string) {
     console.log(`[useLegalChat] Posting query via axios request to: ${messageUrl}`);
 
     try {
+      const { data: { session } } = await supabase.auth.getSession();
+      const token = session?.access_token;
+
       const response = await axios.post(
         messageUrl,
         { message: userMessage },
         {
           headers: { 
             'Content-Type': 'application/json',
-            'Accept': 'text/event-stream'
+            'Accept': 'text/event-stream',
+            ...(token ? { 'Authorization': `Bearer ${token}` } : {})
           },
           responseType: 'stream',
           adapter: 'fetch' // Crucial to allow ReadableStream body handling in browser environments

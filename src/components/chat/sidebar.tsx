@@ -10,6 +10,7 @@ interface SidebarProps {
   onNewSession: () => void;
   session: any;
   onSignOut: () => void;
+  onSignInClick: () => void;
 }
 
 export function Sidebar({
@@ -18,6 +19,7 @@ export function Sidebar({
   onNewSession,
   session,
   onSignOut,
+  onSignInClick,
 }: SidebarProps) {
   return (
     <aside className="w-64 bg-zinc-100 dark:bg-zinc-900 border-r border-zinc-200 dark:border-zinc-800 flex flex-col justify-between hidden md:flex">
@@ -45,10 +47,26 @@ export function Sidebar({
         />
       </div>
 
+      {/* Guest user call-to-action banner */}
+      {session?.user?.is_anonymous && (
+        <div className="mx-4 my-2 p-3 bg-emerald-50/50 dark:bg-emerald-950/10 border border-emerald-100/50 dark:border-emerald-950/20 rounded-xl space-y-1.5">
+          <p className="text-[10px] text-zinc-600 dark:text-zinc-400 leading-relaxed font-medium">
+            Your history is saved locally. Create an account to sync it across devices permanently.
+          </p>
+          <button 
+            onClick={onSignInClick}
+            className="w-full py-1 text-[10px] font-semibold bg-emerald-600 hover:bg-emerald-700 text-white rounded-md transition-colors cursor-pointer text-center"
+          >
+            Sign Up to Sync
+          </button>
+        </div>
+      )}
+
       {/* User profile footer */}
       <SidebarUserProfile
         session={session}
         onSignOut={onSignOut}
+        onSignInClick={onSignInClick}
       />
     </aside>
   );
