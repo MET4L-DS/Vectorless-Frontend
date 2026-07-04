@@ -54,6 +54,13 @@ export function CitationSheet({
                 </div>
               )}
 
+              <div>
+                <span className="text-[10px] uppercase font-bold tracking-wide text-zinc-400 block">Source Content</span>
+                <div className="text-zinc-800 dark:text-zinc-300 mt-1.5 font-sans text-xs bg-zinc-50 dark:bg-zinc-900/60 p-3.5 rounded-lg border border-zinc-200 dark:border-zinc-800 max-h-60 overflow-y-auto leading-relaxed whitespace-pre-wrap">
+                  {selectedCitation.content || "No source content available."}
+                </div>
+              </div>
+
               <div className="pt-4 border-t border-zinc-200 dark:border-zinc-800 text-xs text-zinc-500 space-y-2">
                 <div className="flex items-start space-x-2">
                   <CheckCircle className="w-4 h-4 text-emerald-600 dark:text-emerald-500 shrink-0" />

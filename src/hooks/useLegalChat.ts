@@ -5,6 +5,7 @@ export interface Citation {
   node_id: string;
   title: string;
   page_range: number[];
+  content?: string;
 }
 
 export interface StreamStep {

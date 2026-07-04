@@ -163,3 +163,10 @@
     scrollbar-color: oklch(0.4 0 0 / 40%) transparent;
   }
 }
+
+/* Theme Toggle Circular Reveal view transition rules */
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation: none;
+  mix-blend-mode: normal;
+}
