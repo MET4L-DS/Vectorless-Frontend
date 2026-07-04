@@ -1,4 +1,5 @@
 import React from "react";
+import { User, Scale } from "lucide-react";
 import { ChatMessage, Citation } from "@/hooks/useLegalChat";
 import { ReasoningAccordion } from "./reasoning-accordion";
 import { MessageContent } from "./message-content";
@@ -40,8 +41,13 @@ export function MessageItem({
 
 	return (
 		<div
-			className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}
+			className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"} items-end space-x-2`}
 		>
+			{msg.role === "assistant" && (
+				<div className="w-8 h-8 rounded-full bg-emerald-100 dark:bg-emerald-900/50 flex items-center justify-center shrink-0 mb-1 border border-emerald-200 dark:border-emerald-800">
+					<Scale className="w-4 h-4 text-emerald-600 dark:text-emerald-500" />
+				</div>
+			)}
 			<motion.div
 				layout="position"
 				initial={
@@ -176,6 +182,11 @@ export function MessageItem({
 						/>
 					)}
 			</motion.div>
+			{msg.role === "user" && (
+				<div className="w-8 h-8 rounded-full bg-zinc-200 dark:bg-zinc-800 flex items-center justify-center shrink-0 mb-1 border border-zinc-300 dark:border-zinc-700">
+					<User className="w-4 h-4 text-zinc-600 dark:text-zinc-400" />
+				</div>
+			)}
 		</div>
 	);
 }

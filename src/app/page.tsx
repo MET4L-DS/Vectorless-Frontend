@@ -4,7 +4,7 @@ import React, { useState, useEffect, useRef } from "react";
 import { useLegalChat, Citation } from "@/hooks/useLegalChat";
 import { createClient } from "@/utils/supabase/client";
 import { useTheme } from "next-themes";
-import { Brain } from "lucide-react";
+import { Scale } from "lucide-react";
 import { AnimatePresence, motion } from "framer-motion";
 
 // Extracted modular components
@@ -343,7 +343,7 @@ export default function Home() {
 									transition={{ delay: 0.2, duration: 0.5, type: "spring", bounce: 0.5 }}
 									className="p-5 bg-emerald-50 dark:bg-emerald-950/30 rounded-full border border-emerald-200/50 dark:border-emerald-800/30 text-emerald-600 dark:text-emerald-500 shadow-sm"
 								>
-									<Brain className="w-12 h-12" />
+									<Scale className="w-12 h-12" />
 								</motion.div>
 								<motion.h2 
 									initial={{ opacity: 0, y: 10 }}

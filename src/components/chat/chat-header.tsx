@@ -79,22 +79,33 @@ export function ChatHeader({
           <span>Thread:</span>
           <span className="text-zinc-950 dark:text-zinc-200 normal-case font-mono inline-flex overflow-hidden">
             <AnimatePresence mode="popLayout" initial={false}>
-              {(title || threadId).split("").map((char, index) => (
-                <motion.span
-                  key={`${title || threadId}-${index}`}
-                  initial={{ opacity: 0, y: 10, scale: 0.8 }}
-                  animate={{ opacity: 1, y: 0, scale: 1 }}
-                  exit={{ opacity: 0, scale: 0.8, transition: { duration: 0.1 } }}
-                  transition={{
-                    duration: 0.2,
-                    ease: "easeOut",
-                    delay: index * 0.015, // Typewriter delay
-                  }}
-                  className="inline-block whitespace-pre"
-                >
-                  {char}
-                </motion.span>
-              ))}
+              <motion.div
+                key={title || threadId}
+                initial="hidden"
+                animate="visible"
+                exit="hidden"
+                variants={{
+                  hidden: { opacity: 0 },
+                  visible: {
+                    opacity: 1,
+                    transition: { staggerChildren: 0.02 }
+                  }
+                }}
+                className="inline-flex"
+              >
+                {(title || threadId).split("").map((char, index) => (
+                  <motion.span
+                    key={index}
+                    variants={{
+                      hidden: { opacity: 0, y: 10, scale: 0.8 },
+                      visible: { opacity: 1, y: 0, scale: 1 }
+                    }}
+                    className="inline-block whitespace-pre"
+                  >
+                    {char}
+                  </motion.span>
+                ))}
+              </motion.div>
             </AnimatePresence>
           </span>
         </span>

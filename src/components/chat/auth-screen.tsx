@@ -3,6 +3,7 @@ import { Scale } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { motion } from "framer-motion";
 
 interface AuthScreenProps {
   authEmail: string;
@@ -30,8 +31,14 @@ export function AuthScreen({
   onSubmit,
 }: AuthScreenProps) {
   return (
-    <div className="flex items-center justify-center min-h-screen bg-zinc-100 dark:bg-zinc-950 text-zinc-800 dark:text-zinc-200">
-      <Card className="w-full max-w-md bg-white dark:bg-zinc-900 border-zinc-200 dark:border-zinc-800 shadow-xl">
+    <div className="flex items-center justify-center min-h-screen bg-zinc-100 dark:bg-zinc-950 text-zinc-800 dark:text-zinc-200 px-4">
+      <motion.div
+        initial={{ opacity: 0, y: 30, scale: 0.98 }}
+        animate={{ opacity: 1, y: 0, scale: 1 }}
+        transition={{ type: "spring" as const, stiffness: 300, damping: 25 }}
+        className="w-full max-w-md"
+      >
+        <Card className="bg-white dark:bg-zinc-900 border-zinc-200 dark:border-zinc-800 shadow-xl overflow-hidden">
         <CardHeader className="space-y-1 text-center">
           <div className="flex justify-center mb-2">
             <div className="p-3 bg-zinc-100 dark:bg-zinc-800 rounded-full text-emerald-600 dark:text-emerald-500">
@@ -102,6 +109,7 @@ export function AuthScreen({
           </div>
         </CardContent>
       </Card>
+      </motion.div>
     </div>
   );
 }

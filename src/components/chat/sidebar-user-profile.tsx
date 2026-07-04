@@ -22,7 +22,7 @@ export function SidebarUserProfile({
         </div>
         <div className="truncate max-w-[120px]">
           <p className="font-semibold text-zinc-900 dark:text-zinc-200 truncate">
-            {isAnonymous ? "Guest User" : (session?.user?.name || "Legal Assistant")}
+            {isAnonymous ? "Guest User" : (session?.user?.user_metadata?.full_name || session?.user?.user_metadata?.name || "User")}
           </p>
           <p className="text-[10px] text-zinc-500 dark:text-zinc-500 truncate">
             {isAnonymous ? "Local history only" : session?.user?.email}
