@@ -361,7 +361,7 @@ export default function Home() {
 	}, []);
 
 	return (
-		<div className="flex h-screen bg-zinc-50 dark:bg-zinc-950 text-zinc-800 dark:text-zinc-200 overflow-hidden font-sans">
+		<div className="flex h-[100dvh] bg-zinc-50 dark:bg-zinc-950 text-zinc-800 dark:text-zinc-200 overflow-hidden font-sans">
 			{/* Sidebar Panel */}
 			<Sidebar
 				threadId={threadId}
