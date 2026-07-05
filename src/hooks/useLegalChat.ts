@@ -37,12 +37,14 @@ const supabase = createClient();
 export function useLegalChat(threadId: string, options?: UseLegalChatOptions) {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [isStreaming, setIsStreaming] = useState(false);
+  const [isFetchingHistory, setIsFetchingHistory] = useState(false);
   const abortControllerRef = useRef<AbortController | null>(null);
 
   const fetchHistory = useCallback(async () => {
     if (!threadId) return;
     const historyUrl = `${API_BASE}/api/chats/${threadId}/history`;
     console.log(`[useLegalChat] fetchHistory initiated for URL: ${historyUrl}`);
+    setIsFetchingHistory(true);
     try {
       const { data: { session } } = await supabase.auth.getSession();
       const token = session?.access_token;
@@ -79,6 +81,8 @@ export function useLegalChat(threadId: string, options?: UseLegalChatOptions) {
       if (e.response) {
         console.error(`[useLegalChat] Server responded with error status: ${e.response.status}`, e.response.data);
       }
+    } finally {
+      setIsFetchingHistory(false);
     }
   }, [threadId]);
 
@@ -295,5 +299,5 @@ export function useLegalChat(threadId: string, options?: UseLegalChatOptions) {
     setMessages([]);
   }, [threadId]);
 
-  return { messages, sendMessage, isStreaming, fetchHistory, clearHistory, clearHistoryLocal };
+  return { messages, sendMessage, isStreaming, isFetchingHistory, fetchHistory, clearHistory, clearHistoryLocal };
 }

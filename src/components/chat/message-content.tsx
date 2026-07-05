@@ -231,11 +231,11 @@ export function MessageContent({
 			<ReactMarkdown components={components} remarkPlugins={[remarkGfm]}>
 				{preprocessedText}
 			</ReactMarkdown>
-			{msg.key_provisions && msg.key_provisions.length > 0 && (
+			{msg.key_provisions && msg.key_provisions.length > 0 && !isStreaming && (
 				<motion.div
 					initial={{ opacity: 0, y: 15 }}
 					animate={{ opacity: 1, y: 0 }}
-					transition={{ duration: 0.4 }}
+					transition={{ duration: 0.4, delay: 0.1 }}
 					className="mt-4 p-4 bg-emerald-50/50 dark:bg-emerald-950/20 border border-emerald-100 dark:border-emerald-900/50 rounded-lg"
 				>
 					<h4 className="text-emerald-800 dark:text-emerald-400 font-semibold mb-2 flex items-center">

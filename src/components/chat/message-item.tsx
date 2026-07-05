@@ -41,13 +41,8 @@ export function MessageItem({
 
 	return (
 		<div
-			className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"} items-end space-x-2`}
+			className={`flex w-full ${msg.role === "user" ? "justify-end" : "justify-start"}`}
 		>
-			{msg.role === "assistant" && (
-				<div className="w-8 h-8 rounded-full bg-emerald-100 dark:bg-emerald-900/50 flex items-center justify-center shrink-0 mb-1 border border-emerald-200 dark:border-emerald-800">
-					<Scale className="w-4 h-4 text-emerald-600 dark:text-emerald-500" />
-				</div>
-			)}
 			<motion.div
 				layout="position"
 				initial={
@@ -60,10 +55,10 @@ export function MessageItem({
 					duration: 0.45,
 					ease: [0.16, 1, 0.3, 1], // premium custom easing
 				}}
-				className={`max-w-[85%] rounded-2xl px-8 py-6 border transition-all ${
+				className={`transition-all ${
 					msg.role === "user"
-						? "bg-zinc-100 dark:bg-zinc-900 border-zinc-200 dark:border-zinc-800 text-zinc-950 dark:text-white rounded-br-none"
-						: "w-full bg-zinc-50/50 dark:bg-zinc-900/40 border-zinc-200 dark:border-zinc-800 text-zinc-800 dark:text-zinc-200 rounded-bl-none"
+						? "max-w-[85%] rounded-2xl px-6 py-4 border bg-zinc-100 dark:bg-zinc-900 border-zinc-200 dark:border-zinc-800 text-zinc-950 dark:text-white rounded-br-none"
+						: "w-full py-4 text-zinc-800 dark:text-zinc-200"
 				}`}
 			>
 				{/* Intermediate Reasoning Accordion (Only for Assistant) */}
@@ -133,8 +128,14 @@ export function MessageItem({
 				{/* Action Items */}
 				{msg.role === "assistant" &&
 					msg.action_items &&
-					msg.action_items.length > 0 && (
-						<div className="mt-4 p-4 rounded-xl bg-amber-500/10 dark:bg-amber-500/5 border border-amber-500/20 text-xs">
+					msg.action_items.length > 0 &&
+					!isStreaming && (
+						<motion.div
+							initial={{ opacity: 0, y: 15 }}
+							animate={{ opacity: 1, y: 0 }}
+							transition={{ duration: 0.4, delay: 0.3 }}
+							className="mt-4 p-4 rounded-xl bg-amber-500/10 dark:bg-amber-500/5 border border-amber-500/20 text-xs"
+						>
 							<div className="flex items-center space-x-2 font-semibold text-amber-800 dark:text-amber-400 mb-2">
 								<span className="text-sm">📋</span>
 								<span>Recommended Actions</span>
@@ -144,7 +145,7 @@ export function MessageItem({
 									<li key={idx}>{item}</li>
 								))}
 							</ul>
-						</div>
+						</motion.div>
 					)}
 
 				{/* Suggested Follow-up Questions */}
@@ -152,7 +153,12 @@ export function MessageItem({
 					msg.suggested_follow_up_questions &&
 					msg.suggested_follow_up_questions.length > 0 &&
 					!isStreaming && (
-						<div className="mt-4 space-y-2">
+						<motion.div
+							initial={{ opacity: 0, y: 15 }}
+							animate={{ opacity: 1, y: 0 }}
+							transition={{ duration: 0.4, delay: 0.4 }}
+							className="mt-4 space-y-2"
+						>
 							<p className="text-[10px] font-semibold text-zinc-400 dark:text-zinc-500 uppercase tracking-wider">
 								Suggested Questions
 							</p>
@@ -169,24 +175,26 @@ export function MessageItem({
 									),
 								)}
 							</div>
-						</div>
+						</motion.div>
 					)}
 
 				{/* Citations Footer list */}
 				{msg.role === "assistant" &&
 					msg.citations &&
-					msg.citations.length > 0 && (
-						<CitationFooter
-							citations={msg.citations}
-							onCitationClick={onCitationClick}
-						/>
+					msg.citations.length > 0 &&
+					!isStreaming && (
+						<motion.div
+							initial={{ opacity: 0, y: 15 }}
+							animate={{ opacity: 1, y: 0 }}
+							transition={{ duration: 0.4, delay: 0.6 }}
+						>
+							<CitationFooter
+								citations={msg.citations}
+								onCitationClick={onCitationClick}
+							/>
+						</motion.div>
 					)}
 			</motion.div>
-			{msg.role === "user" && (
-				<div className="w-8 h-8 rounded-full bg-zinc-200 dark:bg-zinc-800 flex items-center justify-center shrink-0 mb-1 border border-zinc-300 dark:border-zinc-700">
-					<User className="w-4 h-4 text-zinc-600 dark:text-zinc-400" />
-				</div>
-			)}
 		</div>
 	);
 }

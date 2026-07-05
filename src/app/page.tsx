@@ -17,21 +17,24 @@ import { ProseSafelist } from "@/components/chat/prose-safelist";
 
 export default function Home() {
 	const [threadId, setThreadId] = useState<string>("");
-	const [sessionsList, setSessionsList] = useState<{id: string, title?: string}[]>([]);
+	const [sessionsList, setSessionsList] = useState<
+		{ id: string; title?: string }[]
+	>([]);
 	const {
 		messages,
 		sendMessage,
 		isStreaming,
+		isFetchingHistory,
 		fetchHistory,
 		clearHistory,
 		clearHistoryLocal,
 	} = useLegalChat(threadId, {
 		onTitleGenerated: (title) => {
 			console.log(`[page.tsx] Dynamic title generated: "${title}"`);
-			setSessionsList(prev => prev.map(s => 
-				s.id === threadId ? { ...s, title } : s
-			));
-		}
+			setSessionsList((prev) =>
+				prev.map((s) => (s.id === threadId ? { ...s, title } : s)),
+			);
+		},
 	});
 	const [inputVal, setInputVal] = useState("");
 
@@ -70,27 +73,42 @@ export default function Home() {
 		}
 		setThreadId(savedThread);
 
-		supabase.auth.getSession().then(({ data: { session: currentSession } }) => {
-			setSession(currentSession);
-			setIsPending(false);
-			
-			// If no session exists, log in anonymously as a guest
-			if (!currentSession) {
-				console.log("[page.tsx] No active session found. Signing in anonymously...");
-				supabase.auth.signInAnonymously().then(({ data, error }) => {
-					if (error) console.error("[page.tsx] Anonymous sign in failed:", error);
-				});
-			}
-		});
+		supabase.auth
+			.getSession()
+			.then(({ data: { session: currentSession } }) => {
+				setSession(currentSession);
+				setIsPending(false);
+
+				// If no session exists, log in anonymously as a guest
+				if (!currentSession) {
+					console.log(
+						"[page.tsx] No active session found. Signing in anonymously...",
+					);
+					supabase.auth
+						.signInAnonymously()
+						.then(({ data, error }) => {
+							if (error)
+								console.error(
+									"[page.tsx] Anonymous sign in failed:",
+									error,
+								);
+						});
+				}
+			});
 
 		// Listen to auth changes
-		const { data: { subscription } } = supabase.auth.onAuthStateChange((event, currentSession) => {
-			console.log(`[page.tsx] Auth state change event: ${event}`, currentSession);
+		const {
+			data: { subscription },
+		} = supabase.auth.onAuthStateChange((event, currentSession) => {
+			console.log(
+				`[page.tsx] Auth state change event: ${event}`,
+				currentSession,
+			);
 			setSession(currentSession);
 			setIsPending(false);
-			
+
 			// Auto anonymous sign-in if they sign out
-			if (event === 'SIGNED_OUT' || !currentSession) {
+			if (event === "SIGNED_OUT" || !currentSession) {
 				supabase.auth.signInAnonymously();
 			}
 		});
@@ -103,38 +121,53 @@ export default function Home() {
 	// Fetch sessions list once auth is ready
 	useEffect(() => {
 		if (isPending || !session) return;
-		
-		const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+
+		const API_BASE =
+			process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 		const fetchSessions = async () => {
 			try {
-				const { data: { session: currentSession } } = await supabase.auth.getSession();
+				const {
+					data: { session: currentSession },
+				} = await supabase.auth.getSession();
 				const token = currentSession?.access_token;
 				const res = await fetch(`${API_BASE}/api/chats/sessions`, {
-					headers: token ? { 'Authorization': `Bearer ${token}` } : {}
+					headers: token ? { Authorization: `Bearer ${token}` } : {},
 				});
 				if (res.ok) {
 					const data = await res.json();
 					if (data.sessions && data.sessions.length > 0) {
 						const fetched = data.sessions;
-						let savedThread = localStorage.getItem("activeThreadId") || threadId;
+						let savedThread =
+							localStorage.getItem("activeThreadId") || threadId;
 						if (savedThread) {
-							if (!fetched.some((s: any) => s.id === savedThread)) {
-								fetched.unshift({ id: savedThread, title: "New Legal Chat" });
+							if (
+								!fetched.some((s: any) => s.id === savedThread)
+							) {
+								fetched.unshift({
+									id: savedThread,
+									title: "New Legal Chat",
+								});
 							}
 							setSessionsList(fetched);
 							setThreadId(savedThread);
 						} else {
 							setSessionsList(fetched);
 							setThreadId(fetched[0].id);
-							localStorage.setItem("activeThreadId", fetched[0].id);
+							localStorage.setItem(
+								"activeThreadId",
+								fetched[0].id,
+							);
 						}
 					} else {
-						let savedThread = localStorage.getItem("activeThreadId") || threadId;
+						let savedThread =
+							localStorage.getItem("activeThreadId") || threadId;
 						if (!savedThread) {
 							savedThread = `session-${Date.now()}`;
 							localStorage.setItem("activeThreadId", savedThread);
 						}
-						setSessionsList([{ id: savedThread, title: "New Legal Chat" }]);
+						setSessionsList([
+							{ id: savedThread, title: "New Legal Chat" },
+						]);
 						setThreadId(savedThread);
 					}
 				}
@@ -148,7 +181,9 @@ export default function Home() {
 	// Load history on mount or thread change
 	useEffect(() => {
 		if (isPending || !session) {
-			console.log(`[page.tsx] fetchHistory skipped: session is still loading or null.`);
+			console.log(
+				`[page.tsx] fetchHistory skipped: session is still loading or null.`,
+			);
 			return;
 		}
 		console.log(
@@ -156,7 +191,7 @@ export default function Home() {
 		);
 		localStorage.setItem("activeThreadId", threadId);
 		fetchHistory();
-	}, [threadId, fetchHistory, isPending, session]);
+	}, [threadId, fetchHistory, isPending, session?.user?.id]);
 
 	// Set mounted state to prevent hydration errors for theme
 	useEffect(() => {
@@ -194,8 +229,8 @@ export default function Home() {
 		);
 		try {
 			await clearHistory();
-			
-			const updatedList = sessionsList.filter(s => s.id !== threadId);
+
+			const updatedList = sessionsList.filter((s) => s.id !== threadId);
 			if (updatedList.length > 0) {
 				setSessionsList(updatedList);
 				const nextActive = updatedList[0].id;
@@ -225,10 +260,13 @@ export default function Home() {
 				const { data, error } = await supabase.auth.updateUser({
 					email: authEmail,
 					password: authPassword,
-					data: { name: authName }
+					data: { name: authName },
 				});
 				if (error) throw error;
-				console.log("[page.tsx] Supabase anonymous upgrade succeeded:", data);
+				console.log(
+					"[page.tsx] Supabase anonymous upgrade succeeded:",
+					data,
+				);
 				setIsAuthModalOpen(false);
 			} else {
 				// Standard user login
@@ -237,7 +275,10 @@ export default function Home() {
 					password: authPassword,
 				});
 				if (error) throw error;
-				console.log("[page.tsx] Supabase signInWithPassword succeeded:", data);
+				console.log(
+					"[page.tsx] Supabase signInWithPassword succeeded:",
+					data,
+				);
 				setIsAuthModalOpen(false);
 			}
 		} catch (err: any) {
@@ -254,17 +295,19 @@ export default function Home() {
 			const redirectTo = `${window.location.origin}/auth/callback`;
 
 			if (isAnonymous && isRegistering) {
-				console.log("[page.tsx] Upgrading anonymous session with Google OAuth...");
+				console.log(
+					"[page.tsx] Upgrading anonymous session with Google OAuth...",
+				);
 				const { error } = await supabase.auth.linkIdentity({
 					provider: "google",
-					options: { redirectTo }
+					options: { redirectTo },
 				});
 				if (error) throw error;
 			} else {
 				console.log("[page.tsx] Starting normal Google OAuth flow...");
 				const { error } = await supabase.auth.signInWithOAuth({
 					provider: "google",
-					options: { redirectTo }
+					options: { redirectTo },
 				});
 				if (error) throw error;
 			}
@@ -306,7 +349,7 @@ export default function Home() {
 					const newId = `session-${Date.now()}`;
 					console.log(`[page.tsx] New Session created: "${newId}"`);
 					// Save the new session to the top of the list locally
-					setSessionsList(prev => [{id: newId}, ...prev]);
+					setSessionsList((prev) => [{ id: newId }, ...prev]);
 					setThreadId(newId);
 					clearHistoryLocal();
 				}}
@@ -320,7 +363,7 @@ export default function Home() {
 				{/* Chat Header */}
 				<ChatHeader
 					threadId={threadId}
-					title={sessionsList.find(s => s.id === threadId)?.title}
+					title={sessionsList.find((s) => s.id === threadId)?.title}
 					theme={theme}
 					setTheme={setTheme}
 					mounted={mounted}
@@ -329,23 +372,54 @@ export default function Home() {
 
 				{/* Scrollable Message List */}
 				<div className="flex-1 overflow-y-auto p-4 space-y-6">
-					{messages.length === 0 ? (
-						<motion.div 
+					{isFetchingHistory ? (
+						<div className="max-w-3xl mx-auto space-y-6 mt-4">
+							<motion.div
+								initial={{ opacity: 0 }}
+								animate={{ opacity: 1 }}
+								transition={{ duration: 0.3 }}
+								className="space-y-6"
+							>
+								{/* User query skeleton */}
+								<div className="flex justify-end">
+									<div className="w-1/3 h-14 bg-zinc-200/60 dark:bg-zinc-800/60 rounded-2xl rounded-br-none animate-pulse"></div>
+								</div>
+								{/* Assistant response skeleton */}
+								<div className="flex flex-col space-y-3 py-4 w-full">
+									<div className="w-full h-3.5 bg-zinc-200/50 dark:bg-zinc-800/50 rounded-md animate-pulse"></div>
+									<div className="w-11/12 h-3.5 bg-zinc-200/50 dark:bg-zinc-800/50 rounded-md animate-pulse"></div>
+									<div className="w-4/5 h-3.5 bg-zinc-200/50 dark:bg-zinc-800/50 rounded-md animate-pulse"></div>
+									<div className="w-full h-3.5 bg-zinc-200/50 dark:bg-zinc-800/50 rounded-md animate-pulse"></div>
+									<div className="w-3/4 h-3.5 bg-zinc-200/50 dark:bg-zinc-800/50 rounded-md animate-pulse"></div>
+								</div>
+								{/* User query skeleton 2 */}
+								<div className="flex justify-end">
+									<div className="w-1/2 h-16 bg-zinc-200/60 dark:bg-zinc-800/60 rounded-2xl rounded-br-none animate-pulse"></div>
+								</div>
+							</motion.div>
+						</div>
+					) : messages.length === 0 ? (
+						<motion.div
 							initial={{ opacity: 0, y: 20 }}
 							animate={{ opacity: 1, y: 0 }}
 							transition={{ duration: 0.5, ease: "easeOut" }}
 							className="h-full flex flex-col items-center justify-center text-center space-y-8 max-w-2xl mx-auto py-10"
 						>
 							<div className="space-y-4 flex flex-col items-center">
-								<motion.div 
+								<motion.div
 									initial={{ scale: 0.8, opacity: 0 }}
 									animate={{ scale: 1, opacity: 1 }}
-									transition={{ delay: 0.2, duration: 0.5, type: "spring", bounce: 0.5 }}
+									transition={{
+										delay: 0.2,
+										duration: 0.5,
+										type: "spring",
+										bounce: 0.5,
+									}}
 									className="p-5 bg-emerald-50 dark:bg-emerald-950/30 rounded-full border border-emerald-200/50 dark:border-emerald-800/30 text-emerald-600 dark:text-emerald-500 shadow-sm"
 								>
 									<Scale className="w-12 h-12" />
 								</motion.div>
-								<motion.h2 
+								<motion.h2
 									initial={{ opacity: 0, y: 10 }}
 									animate={{ opacity: 1, y: 0 }}
 									transition={{ delay: 0.3, duration: 0.4 }}
@@ -353,17 +427,21 @@ export default function Home() {
 								>
 									Ask an Indian Criminal Law Query
 								</motion.h2>
-								<motion.p 
+								<motion.p
 									initial={{ opacity: 0, y: 10 }}
 									animate={{ opacity: 1, y: 0 }}
 									transition={{ delay: 0.4, duration: 0.4 }}
 									className="text-base text-zinc-500 dark:text-zinc-400 max-w-lg mx-auto leading-relaxed"
 								>
-									Enter your query scenario. The autonomous Legal-Assist Agent will search the new statutes (BNS, BNSS, BSA) and police SOP guidelines to resolve your query with exact citations.
+									Enter your query scenario. The autonomous
+									Legal-Assist Agent will search the new
+									statutes (BNS, BNSS, BSA) and police SOP
+									guidelines to resolve your query with exact
+									citations.
 								</motion.p>
 							</div>
 
-							<motion.div 
+							<motion.div
 								initial={{ opacity: 0, y: 20 }}
 								animate={{ opacity: 1, y: 0 }}
 								transition={{ delay: 0.6, duration: 0.5 }}
@@ -374,7 +452,7 @@ export default function Home() {
 										"What is the punishment for robbery under BNS?",
 										"When can police arrest without a warrant?",
 										"What are the rights of an arrested person?",
-										"Explain the right to private defence of property."
+										"Explain the right to private defence of property.",
 									].map((suggestion, idx) => (
 										<button
 											key={idx}
@@ -387,15 +465,19 @@ export default function Home() {
 											}}
 											className="p-4 rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900/50 hover:bg-zinc-50 dark:hover:bg-zinc-800 text-left text-sm text-zinc-700 dark:text-zinc-300 transition-all hover:border-emerald-300 dark:hover:border-emerald-700 hover:shadow-sm flex items-center group"
 										>
-											<span className="flex-1">{suggestion}</span>
-											<span className="opacity-0 group-hover:opacity-100 transition-opacity text-emerald-500">→</span>
+											<span className="flex-1">
+												{suggestion}
+											</span>
+											<span className="opacity-0 group-hover:opacity-100 transition-opacity text-emerald-500">
+												→
+											</span>
 										</button>
 									))}
 								</div>
 							</motion.div>
 						</motion.div>
 					) : (
-						<div className="space-y-6 max-w-4xl mx-auto">
+						<div className="space-y-6 max-w-3xl mx-auto">
 							{messages.map((msg, index) => (
 								<MessageItem
 									key={msg.id}
@@ -434,7 +516,7 @@ export default function Home() {
 				{isAuthModalOpen && (
 					<div className="fixed inset-0 z-50 flex items-center justify-center p-4">
 						{/* Backdrop */}
-						<motion.div 
+						<motion.div
 							initial={{ opacity: 0 }}
 							animate={{ opacity: 1 }}
 							exit={{ opacity: 0 }}
@@ -442,7 +524,7 @@ export default function Home() {
 							className="absolute inset-0 bg-black/60 backdrop-blur-xs"
 						/>
 						{/* Modal Card */}
-						<motion.div 
+						<motion.div
 							initial={{ opacity: 0, scale: 0.95, y: 15 }}
 							animate={{ opacity: 1, scale: 1, y: 0 }}
 							exit={{ opacity: 0, scale: 0.95, y: 15 }}
@@ -451,41 +533,53 @@ export default function Home() {
 						>
 							{/* Shimmer emerald accent line */}
 							<div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-emerald-500 via-teal-500 to-emerald-500" />
-							
+
 							<div className="space-y-4">
 								<div className="text-center space-y-1">
 									<h3 className="text-xl font-bold text-zinc-900 dark:text-white">
-										{isRegistering ? "Save Your History" : "Welcome Back"}
+										{isRegistering
+											? "Save Your History"
+											: "Welcome Back"}
 									</h3>
 									<p className="text-xs text-zinc-500 dark:text-zinc-400">
-										{isRegistering 
-											? "Link your guest session to an email to permanently save your chat history and unlock features." 
-											: "Sign in to access your saved chat sessions."
-										}
+										{isRegistering
+											? "Link your guest session to an email to permanently save your chat history and unlock features."
+											: "Sign in to access your saved chat sessions."}
 									</p>
 								</div>
 
-								<form onSubmit={handleAuthSubmit} className="space-y-3.5">
+								<form
+									onSubmit={handleAuthSubmit}
+									className="space-y-3.5"
+								>
 									{isRegistering && (
 										<div className="space-y-1">
-											<label className="text-[10px] font-medium text-zinc-500 dark:text-zinc-400 uppercase tracking-wider">Full Name</label>
-											<input 
-												type="text" 
+											<label className="text-[10px] font-medium text-zinc-500 dark:text-zinc-400 uppercase tracking-wider">
+												Full Name
+											</label>
+											<input
+												type="text"
 												value={authName}
-												onChange={(e) => setAuthName(e.target.value)}
+												onChange={(e) =>
+													setAuthName(e.target.value)
+												}
 												placeholder="John Doe"
 												className="w-full text-sm px-3.5 py-2 bg-zinc-50 dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-lg text-zinc-900 dark:text-white placeholder:text-zinc-400 focus:outline-hidden focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-colors"
 												required
 											/>
 										</div>
 									)}
-									
+
 									<div className="space-y-1">
-										<label className="text-[10px] font-medium text-zinc-500 dark:text-zinc-400 uppercase tracking-wider">Email Address</label>
-										<input 
-											type="email" 
+										<label className="text-[10px] font-medium text-zinc-500 dark:text-zinc-400 uppercase tracking-wider">
+											Email Address
+										</label>
+										<input
+											type="email"
 											value={authEmail}
-											onChange={(e) => setAuthEmail(e.target.value)}
+											onChange={(e) =>
+												setAuthEmail(e.target.value)
+											}
 											placeholder="john@example.com"
 											className="w-full text-sm px-3.5 py-2 bg-zinc-50 dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-lg text-zinc-900 dark:text-white placeholder:text-zinc-400 focus:outline-hidden focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-colors"
 											required
@@ -493,11 +587,15 @@ export default function Home() {
 									</div>
 
 									<div className="space-y-1">
-										<label className="text-[10px] font-medium text-zinc-500 dark:text-zinc-400 uppercase tracking-wider">Password</label>
-										<input 
-											type="password" 
+										<label className="text-[10px] font-medium text-zinc-500 dark:text-zinc-400 uppercase tracking-wider">
+											Password
+										</label>
+										<input
+											type="password"
 											value={authPassword}
-											onChange={(e) => setAuthPassword(e.target.value)}
+											onChange={(e) =>
+												setAuthPassword(e.target.value)
+											}
 											placeholder="••••••••"
 											className="w-full text-sm px-3.5 py-2 bg-zinc-50 dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-lg text-zinc-900 dark:text-white placeholder:text-zinc-400 focus:outline-hidden focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-colors"
 											required
@@ -510,40 +608,56 @@ export default function Home() {
 										</p>
 									)}
 
-									<button 
+									<button
 										type="submit"
 										className="w-full py-2 bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white font-medium text-sm rounded-lg shadow-md hover:shadow-lg transition duration-200 cursor-pointer"
 									>
-										{isRegistering ? "Create Account & Upgrade" : "Sign In"}
+										{isRegistering
+											? "Create Account & Upgrade"
+											: "Sign In"}
 									</button>
 								</form>
 
 								<div className="relative flex py-1 items-center">
 									<div className="flex-grow border-t border-zinc-200 dark:border-zinc-800"></div>
-									<span className="flex-shrink mx-4 text-zinc-400 text-[10px] uppercase tracking-wider font-semibold">or</span>
+									<span className="flex-shrink mx-4 text-zinc-400 text-[10px] uppercase tracking-wider font-semibold">
+										or
+									</span>
 									<div className="flex-grow border-t border-zinc-200 dark:border-zinc-800"></div>
 								</div>
 
-								<button 
+								<button
 									type="button"
 									onClick={handleGoogleSignIn}
 									className="w-full flex items-center justify-center gap-2.5 py-2 bg-white dark:bg-zinc-800 hover:bg-zinc-50 dark:hover:bg-zinc-700 text-zinc-700 dark:text-zinc-200 font-semibold text-sm rounded-lg border border-zinc-200 dark:border-zinc-800 shadow-xs transition duration-200 cursor-pointer"
 								>
-									<svg className="w-4 h-4" viewBox="0 0 24 24">
-										<path fill="#EA4335" d="M12.24 10.285V14.4h6.887c-.648 2.41-2.519 4.114-5.187 4.114-3.488 0-6.315-2.827-6.315-6.315s2.827-6.315 6.315-6.315c1.666 0 3.125.651 4.223 1.704l3.14-3.14C19.14 2.235 15.82 1 12 1 5.925 1 12 5.925 1 12s4.925 11 11 11c5.96 0 10.64-4.22 10.64-10.64 0-.61-.053-1.22-.16-1.815l-10.24.085z"/>
+									<svg
+										className="w-4 h-4"
+										viewBox="0 0 24 24"
+									>
+										<path
+											fill="#EA4335"
+											d="M12.24 10.285V14.4h6.887c-.648 2.41-2.519 4.114-5.187 4.114-3.488 0-6.315-2.827-6.315-6.315s2.827-6.315 6.315-6.315c1.666 0 3.125.651 4.223 1.704l3.14-3.14C19.14 2.235 15.82 1 12 1 5.925 1 12 5.925 1 12s4.925 11 11 11c5.96 0 10.64-4.22 10.64-10.64 0-.61-.053-1.22-.16-1.815l-10.24.085z"
+										/>
 									</svg>
-									<span>{isRegistering ? "Register with Google" : "Continue with Google"}</span>
+									<span>
+										{isRegistering
+											? "Register with Google"
+											: "Continue with Google"}
+									</span>
 								</button>
 
 								<div className="text-center">
-									<button 
+									<button
 										onClick={() => {
 											setIsRegistering(!isRegistering);
 											setAuthError("");
 										}}
 										className="text-xs text-emerald-600 hover:text-emerald-700 dark:text-emerald-500 dark:hover:text-emerald-400 font-medium hover:underline cursor-pointer"
 									>
-										{isRegistering ? "Already have an account? Sign In" : "Don't have an account? Sign Up & Save History"}
+										{isRegistering
+											? "Already have an account? Sign In"
+											: "Don't have an account? Sign Up & Save History"}
 									</button>
 								</div>
 							</div>
