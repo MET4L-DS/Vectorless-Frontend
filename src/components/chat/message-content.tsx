@@ -96,6 +96,9 @@ export function MessageContent({
 
 	// Convert [Source: BNS_S309, BNS_S310] to multiple markdown links using custom scheme #citation-
 	const preprocessCitations = (content: string) => {
+		const prefixes = ["BNS_", "BNSS_", "BSA_", "SOP_"];
+		const isProductId = (str: string) => prefixes.some(pref => str.startsWith(pref));
+
 		return content.replace(
 			/\[Source:\s*([^\]]+)\]/g,
 			(match, idsString) => {
@@ -103,8 +106,27 @@ export function MessageContent({
 					.split(",")
 					.map((id: string) => id.trim())
 					.filter((id: string) => id);
-				return ids
-					.map((id: string) => `[${id}](#citation-${id})`)
+				
+				const groups: { anchor: string; display: string }[] = [];
+				for (const id of ids) {
+					if (isProductId(id)) {
+						groups.push({ anchor: id, display: id });
+					} else {
+						if (groups.length > 0) {
+							groups[groups.length - 1].display += `, ${id}`;
+						} else {
+							groups.push({ anchor: id, display: id });
+						}
+					}
+				}
+
+				return groups
+					.map((group) => {
+						const safeAnchor = encodeURIComponent(group.anchor.replace(/\s+/g, "_"))
+							.replace(/\(/g, "%28")
+							.replace(/\)/g, "%29");
+						return `[${group.display}](#citation-${safeAnchor})`;
+					})
 					.join(" ");
 			},
 		);
@@ -142,7 +164,7 @@ export function MessageContent({
 					return <GlowCursor key="glow-cursor" />;
 				}
 				if (href && href.startsWith("#citation-")) {
-					const citationId = href.replace("#citation-", "");
+					const citationId = decodeURIComponent(href.replace("#citation-", ""));
 					const matchedCitation = (msg.citations || []).find(
 						(c) => c.node_id === citationId,
 					);
