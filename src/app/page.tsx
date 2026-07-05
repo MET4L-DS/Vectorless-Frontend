@@ -475,9 +475,9 @@ export default function Home() {
 							initial={{ opacity: 0, y: 20 }}
 							animate={{ opacity: 1, y: 0 }}
 							transition={{ duration: 0.5, ease: "easeOut" }}
-							className="h-full flex flex-col items-center justify-center text-center space-y-8 max-w-2xl mx-auto py-10"
+							className="min-h-full flex flex-col items-center justify-start md:justify-center text-center space-y-6 md:space-y-8 max-w-2xl mx-auto py-6 md:py-10 px-4 md:px-0"
 						>
-							<div className="space-y-4 flex flex-col items-center">
+							<div className="space-y-3 md:space-y-4 flex flex-col items-center">
 								<motion.div
 									initial={{ scale: 0.8, opacity: 0 }}
 									animate={{ scale: 1, opacity: 1 }}
@@ -487,9 +487,9 @@ export default function Home() {
 										type: "spring",
 										bounce: 0.5,
 									}}
-									className="p-5 bg-emerald-50 dark:bg-emerald-950/30 rounded-full border border-emerald-200/50 dark:border-emerald-800/30 text-emerald-600 dark:text-emerald-500 shadow-sm"
+									className="p-3.5 md:p-5 bg-emerald-50 dark:bg-emerald-950/30 rounded-full border border-emerald-200/50 dark:border-emerald-800/30 text-emerald-600 dark:text-emerald-500 shadow-sm"
 								>
-									<Scale className="w-12 h-12" />
+									<Scale className="w-9 h-9 md:w-12 md:h-12" />
 								</motion.div>
 								<motion.h2
 									initial={{ opacity: 0, y: 10 }}
@@ -503,7 +503,7 @@ export default function Home() {
 									initial={{ opacity: 0, y: 10 }}
 									animate={{ opacity: 1, y: 0 }}
 									transition={{ delay: 0.4, duration: 0.4 }}
-									className="text-base text-zinc-500 dark:text-zinc-400 max-w-lg mx-auto leading-relaxed"
+									className="text-sm md:text-base text-zinc-500 dark:text-zinc-400 max-w-lg mx-auto leading-relaxed px-4 md:px-0"
 								>
 									Enter your query scenario. The autonomous
 									Legal-Assist Agent will search the new
@@ -517,9 +517,9 @@ export default function Home() {
 								initial={{ opacity: 0, y: 20 }}
 								animate={{ opacity: 1, y: 0 }}
 								transition={{ delay: 0.6, duration: 0.5 }}
-								className="w-full pt-6"
+								className="w-full pt-4 md:pt-6"
 							>
-								<div className="grid grid-cols-1 sm:grid-cols-2 gap-3 w-full">
+								<div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 w-full">
 									{[
 										"What is the punishment for robbery under BNS?",
 										"When can police arrest without a warrant?",
@@ -535,7 +535,7 @@ export default function Home() {
 													setInputVal("");
 												}, 50);
 											}}
-											className="p-4 rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900/50 hover:bg-zinc-50 dark:hover:bg-zinc-800 text-left text-sm text-zinc-700 dark:text-zinc-300 transition-all hover:border-emerald-300 dark:hover:border-emerald-700 hover:shadow-sm flex items-center group"
+											className="p-3 md:p-4 rounded-xl border border-zinc-200/80 dark:border-zinc-800/60 bg-white dark:bg-zinc-900/50 hover:bg-zinc-50 dark:hover:bg-zinc-800 text-left text-xs sm:text-sm text-zinc-700 dark:text-zinc-300 transition-all hover:border-emerald-300 dark:hover:border-emerald-700 hover:shadow-sm flex items-center group"
 										>
 											<span className="flex-1">
 												{suggestion}
