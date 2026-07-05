@@ -32,7 +32,7 @@ export function ChatInput({
       >
         <Input
           type="text"
-          placeholder="Ask a legal scenario (e.g. rights of arrest, robbery penalty)..."
+          placeholder="Ask a legal query or scenario..."
           value={inputVal}
           onChange={(e) => setInputVal(e.target.value)}
           disabled={isStreaming}

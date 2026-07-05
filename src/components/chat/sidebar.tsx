@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { SidebarSessionList } from "./sidebar-session-list";
 import { SidebarUserProfile } from "./sidebar-user-profile";
 import { motion } from "framer-motion";
+import { cn } from "@/lib/utils";
 
 interface SidebarProps {
   threadId: string;
@@ -14,6 +15,7 @@ interface SidebarProps {
   onSignOut: () => void;
   onSignInClick: () => void;
   onSettingsClick: () => void;
+  className?: string;
 }
 
 export function Sidebar({
@@ -25,9 +27,10 @@ export function Sidebar({
   onSignOut,
   onSignInClick,
   onSettingsClick,
+  className,
 }: SidebarProps) {
   return (
-    <aside className="w-64 bg-zinc-100 dark:bg-zinc-900 border-r border-zinc-200 dark:border-zinc-800 flex flex-col justify-between hidden md:flex">
+    <aside className={cn("w-64 bg-zinc-100 dark:bg-zinc-900 border-r border-zinc-200 dark:border-zinc-800 flex flex-col justify-between", className)}>
       <div>
         <div className="p-4 border-b border-zinc-200 dark:border-zinc-800 flex items-center justify-between">
           <div className="flex items-center space-x-2">

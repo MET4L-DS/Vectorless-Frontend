@@ -15,9 +15,11 @@ import { ChatInput } from "@/components/chat/chat-input";
 import { CitationSheet } from "@/components/chat/citation-sheet";
 import { UserSettingsModal } from "@/components/chat/user-settings-modal";
 import { ProseSafelist } from "@/components/chat/prose-safelist";
+import { Sheet, SheetContent } from "@/components/ui/sheet";
 
 export default function Home() {
 	const [threadId, setThreadId] = useState<string>("");
+	const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
 	const [sessionsList, setSessionsList] = useState<
 		{ id: string; title?: string }[]
 	>([]);
@@ -385,7 +387,47 @@ export default function Home() {
 				onSignOut={handleSignOut}
 				onSignInClick={() => setIsAuthModalOpen(true)}
 				onSettingsClick={() => setIsSettingsOpen(true)}
+				className="hidden md:flex"
 			/>
+
+			{/* Mobile Sidebar Sheet Drawer */}
+			<Sheet open={isMobileSidebarOpen} onOpenChange={setIsMobileSidebarOpen}>
+				<SheetContent side="left" showCloseButton={false} className="p-0 w-64 border-none">
+					<Sidebar
+						threadId={threadId}
+						setThreadId={(id) => {
+							setThreadId(id);
+							setIsMobileSidebarOpen(false);
+						}}
+						sessionsList={sessionsList}
+						onNewSession={() => {
+							if (messages.length === 0 && !isFetchingHistory) {
+								return;
+							}
+							const newId = `session-${Date.now()}`;
+							localStorage.setItem("activeThreadId", newId);
+							setSessionsList((prev) => [{ id: newId }, ...prev]);
+							setThreadId(newId);
+							clearHistoryLocal();
+							setIsMobileSidebarOpen(false);
+						}}
+						session={session}
+						onSignOut={() => {
+							handleSignOut();
+							setIsMobileSidebarOpen(false);
+						}}
+						onSignInClick={() => {
+							setIsAuthModalOpen(true);
+							setIsMobileSidebarOpen(false);
+						}}
+						onSettingsClick={() => {
+							setIsSettingsOpen(true);
+							setIsMobileSidebarOpen(false);
+						}}
+						className="flex h-full w-full border-r-0"
+					/>
+				</SheetContent>
+			</Sheet>
 
 			{/* Main Chat Panel */}
 			<main className="flex-1 flex flex-col justify-between bg-white dark:bg-zinc-950">
@@ -397,6 +439,7 @@ export default function Home() {
 					setTheme={setTheme}
 					mounted={mounted}
 					onClearChat={handleClear}
+					onMenuClick={() => setIsMobileSidebarOpen(true)}
 				/>
 
 				{/* Scrollable Message List */}

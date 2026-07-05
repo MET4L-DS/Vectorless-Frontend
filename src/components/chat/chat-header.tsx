@@ -1,6 +1,6 @@
 import React, { useRef } from "react";
 import { flushSync } from "react-dom";
-import { Trash2, Sun, Moon } from "lucide-react";
+import { Trash2, Sun, Moon, Menu } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { motion, AnimatePresence } from "framer-motion";
 
@@ -11,6 +11,7 @@ interface ChatHeaderProps {
 	mounted: boolean;
 	onClearChat: () => void;
 	title?: string;
+	onMenuClick?: () => void;
 }
 
 export function ChatHeader({
@@ -20,6 +21,7 @@ export function ChatHeader({
 	mounted,
 	onClearChat,
 	title,
+	onMenuClick,
 }: ChatHeaderProps) {
 	const buttonRef = useRef<HTMLButtonElement>(null);
 
@@ -73,11 +75,20 @@ export function ChatHeader({
 
 	return (
 		<header className="h-14 bg-zinc-50/50 dark:bg-zinc-900/40 border-b border-zinc-200 dark:border-zinc-800 px-4 flex items-center justify-between">
-			<div className="flex items-center space-x-2">
-				<div className="h-2.5 w-2.5 rounded-full bg-emerald-500 animate-pulse" />
-				<span className="text-xs font-semibold tracking-wide text-zinc-500 dark:text-zinc-400 uppercase flex items-center space-x-2">
-					<span>Thread:</span>
-					<span className="text-zinc-950 dark:text-zinc-200 normal-case font-mono inline-flex overflow-hidden">
+			<div className="flex items-center space-x-2 overflow-hidden mr-2">
+				<Button
+					variant="ghost"
+					size="icon-sm"
+					onClick={onMenuClick}
+					className="md:hidden h-8 w-8 p-0 text-zinc-500 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 shrink-0"
+					title="Open Menu"
+				>
+					<Menu className="w-4 h-4" />
+				</Button>
+				<div className="h-2.5 w-2.5 rounded-full bg-emerald-500 animate-pulse shrink-0 hidden sm:block" />
+				<span className="text-xs font-semibold tracking-wide text-zinc-500 dark:text-zinc-400 uppercase flex items-center space-x-1.5 overflow-hidden">
+					<span className="hidden sm:inline shrink-0">Thread:</span>
+					<span className="text-zinc-950 dark:text-zinc-200 normal-case font-mono inline-flex overflow-hidden max-w-[120px] xs:max-w-[160px] sm:max-w-xs md:max-w-md truncate">
 						<AnimatePresence mode="popLayout" initial={false}>
 							<motion.div
 								key={title || threadId}
