@@ -4,7 +4,7 @@ import React, { useState, useEffect, useRef } from "react";
 import { useLegalChat, Citation } from "@/hooks/useLegalChat";
 import { createClient } from "@/utils/supabase/client";
 import { useTheme } from "next-themes";
-import { Scale } from "lucide-react";
+import { Scale, Eye, EyeOff } from "lucide-react";
 import { AnimatePresence, motion } from "framer-motion";
 
 // Extracted modular components
@@ -13,6 +13,7 @@ import { ChatHeader } from "@/components/chat/chat-header";
 import { MessageItem } from "@/components/chat/message-item";
 import { ChatInput } from "@/components/chat/chat-input";
 import { CitationSheet } from "@/components/chat/citation-sheet";
+import { UserSettingsModal } from "@/components/chat/user-settings-modal";
 import { ProseSafelist } from "@/components/chat/prose-safelist";
 
 export default function Home() {
@@ -54,12 +55,14 @@ export default function Home() {
 	const [isRegistering, setIsRegistering] = useState(false);
 	const [authError, setAuthError] = useState("");
 	const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
+	const [showAuthPassword, setShowAuthPassword] = useState(false);
 
 	// Citation details sheet state
 	const [selectedCitation, setSelectedCitation] = useState<Citation | null>(
 		null,
 	);
 	const [isSheetOpen, setIsSheetOpen] = useState(false);
+	const [isSettingsOpen, setIsSettingsOpen] = useState(false);
 
 	const scrollContainerRef = useRef<HTMLDivElement>(null);
 
@@ -73,43 +76,38 @@ export default function Home() {
 		}
 		setThreadId(savedThread);
 
-		supabase.auth
-			.getSession()
-			.then(({ data: { session: currentSession } }) => {
-				setSession(currentSession);
-				setIsPending(false);
-
-				// If no session exists, log in anonymously as a guest
-				if (!currentSession) {
-					console.log(
-						"[page.tsx] No active session found. Signing in anonymously...",
-					);
-					supabase.auth
-						.signInAnonymously()
-						.then(({ data, error }) => {
-							if (error)
-								console.error(
-									"[page.tsx] Anonymous sign in failed:",
-									error,
-								);
-						});
-				}
-			});
-
 		// Listen to auth changes
 		const {
 			data: { subscription },
 		} = supabase.auth.onAuthStateChange((event, currentSession) => {
 			console.log(
 				`[page.tsx] Auth state change event: ${event}`,
-				currentSession,
+				{
+					userId: currentSession?.user?.id,
+					email: currentSession?.user?.email,
+					isAnonymous: currentSession?.user?.is_anonymous,
+					role: currentSession?.user?.role,
+					accessToken: currentSession?.access_token ? `${currentSession.access_token.substring(0, 20)}...` : null,
+					expiresAt: currentSession?.expires_at ? new Date(currentSession.expires_at * 1000).toLocaleString() : null
+				}
 			);
 			setSession(currentSession);
 			setIsPending(false);
 
-			// Auto anonymous sign-in if they sign out
-			if (event === "SIGNED_OUT" || !currentSession) {
-				supabase.auth.signInAnonymously();
+			// Auto anonymous sign-in if they sign out or if initial session is null
+			if (event === "SIGNED_OUT" || (event === "INITIAL_SESSION" && !currentSession)) {
+				console.log(
+					"[page.tsx] No active session found. Signing in anonymously...",
+				);
+				supabase.auth.signInAnonymously().then(({ data, error }) => {
+					if (error) {
+						console.error("[page.tsx] Anonymous sign in failed:", error);
+					} else {
+						console.log("[page.tsx] Anonymous sign in completed successfully:", data.session?.user?.id);
+					}
+				}).catch((error) => {
+					console.error("[page.tsx] Anonymous sign in encountered unexpected error:", error);
+				});
 			}
 		});
 
@@ -257,11 +255,16 @@ export default function Home() {
 		try {
 			if (isRegistering) {
 				// Upgrade the guest anonymous account to permanent
-				const { data, error } = await supabase.auth.updateUser({
-					email: authEmail,
-					password: authPassword,
-					data: { name: authName },
-				});
+				const { data, error } = await supabase.auth.updateUser(
+					{
+						email: authEmail,
+						password: authPassword,
+						data: { name: authName },
+					},
+					{
+						emailRedirectTo: `${window.location.origin}/auth/callback`,
+					}
+				);
 				if (error) throw error;
 				console.log(
 					"[page.tsx] Supabase anonymous upgrade succeeded:",
@@ -356,6 +359,7 @@ export default function Home() {
 				session={session}
 				onSignOut={handleSignOut}
 				onSignInClick={() => setIsAuthModalOpen(true)}
+				onSettingsClick={() => setIsSettingsOpen(true)}
 			/>
 
 			{/* Main Chat Panel */}
@@ -590,16 +594,25 @@ export default function Home() {
 										<label className="text-[10px] font-medium text-zinc-500 dark:text-zinc-400 uppercase tracking-wider">
 											Password
 										</label>
-										<input
-											type="password"
-											value={authPassword}
-											onChange={(e) =>
-												setAuthPassword(e.target.value)
-											}
-											placeholder="••••••••"
-											className="w-full text-sm px-3.5 py-2 bg-zinc-50 dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-lg text-zinc-900 dark:text-white placeholder:text-zinc-400 focus:outline-hidden focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-colors"
-											required
-										/>
+										<div className="relative">
+											<input
+												type={showAuthPassword ? "text" : "password"}
+												value={authPassword}
+												onChange={(e) =>
+													setAuthPassword(e.target.value)
+												}
+												placeholder="••••••••"
+												className="w-full text-sm px-3.5 py-2 bg-zinc-50 dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-lg text-zinc-900 dark:text-white placeholder:text-zinc-400 focus:outline-hidden focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-colors pr-10"
+												required
+											/>
+											<button
+												type="button"
+												onClick={() => setShowAuthPassword(!showAuthPassword)}
+												className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300 transition-colors"
+											>
+												{showAuthPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+											</button>
+										</div>
 									</div>
 
 									{authError && (
@@ -665,6 +678,13 @@ export default function Home() {
 					</div>
 				)}
 			</AnimatePresence>
+
+			<UserSettingsModal
+				isOpen={isSettingsOpen}
+				onClose={() => setIsSettingsOpen(false)}
+				session={session}
+				onSignOut={handleSignOut}
+			/>
 
 			{/* Tailwind v4 Safelisting for markdown classes */}
 			<ProseSafelist />

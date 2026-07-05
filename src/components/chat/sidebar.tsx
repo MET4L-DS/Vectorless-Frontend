@@ -13,6 +13,7 @@ interface SidebarProps {
   session: any;
   onSignOut: () => void;
   onSignInClick: () => void;
+  onSettingsClick: () => void;
 }
 
 export function Sidebar({
@@ -23,6 +24,7 @@ export function Sidebar({
   session,
   onSignOut,
   onSignInClick,
+  onSettingsClick,
 }: SidebarProps) {
   return (
     <aside className="w-64 bg-zinc-100 dark:bg-zinc-900 border-r border-zinc-200 dark:border-zinc-800 flex flex-col justify-between hidden md:flex">
@@ -91,6 +93,7 @@ export function Sidebar({
         session={session}
         onSignOut={onSignOut}
         onSignInClick={onSignInClick}
+        onSettingsClick={onSettingsClick}
       />
     </aside>
   );
