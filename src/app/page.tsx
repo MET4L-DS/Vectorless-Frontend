@@ -174,7 +174,7 @@ export default function Home() {
 			}
 		};
 		fetchSessions();
-	}, [session, isPending, supabase.auth, threadId]);
+	}, [session, isPending, supabase.auth]);
 
 	// Load history on mount or thread change
 	useEffect(() => {
@@ -351,6 +351,7 @@ export default function Home() {
 				onNewSession={() => {
 					const newId = `session-${Date.now()}`;
 					console.log(`[page.tsx] New Session created: "${newId}"`);
+					localStorage.setItem("activeThreadId", newId);
 					// Save the new session to the top of the list locally
 					setSessionsList((prev) => [{ id: newId }, ...prev]);
 					setThreadId(newId);
