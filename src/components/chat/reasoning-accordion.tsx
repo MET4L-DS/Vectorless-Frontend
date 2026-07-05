@@ -132,7 +132,7 @@ export function ReasoningAccordion({
               }}
               className="overflow-hidden"
             >
-              <div className="mt-2 p-3 bg-zinc-50 dark:bg-zinc-950/60 border border-zinc-200 dark:border-zinc-900 rounded-lg space-y-2 text-[11px] font-mono text-zinc-500 dark:text-zinc-400 overflow-y-auto max-h-56">
+              <div className="mt-2 p-3 bg-zinc-50 dark:bg-zinc-950/60 border border-zinc-200 dark:border-zinc-900 rounded-lg space-y-2 text-[11px] font-mono text-zinc-500 dark:text-zinc-400 overflow-y-auto max-h-56 break-words whitespace-pre-wrap">
                 <AnimatePresence initial={false}>
                   {steps.map((step, idx) => (
                     <motion.div
