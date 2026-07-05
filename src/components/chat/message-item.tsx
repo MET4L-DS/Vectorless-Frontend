@@ -57,7 +57,7 @@ export function MessageItem({
 				}}
 				className={`transition-all ${
 					msg.role === "user"
-						? "max-w-[85%] rounded-2xl px-6 py-4 border bg-zinc-100 dark:bg-zinc-900 border-zinc-200 dark:border-zinc-800 text-zinc-950 dark:text-white rounded-br-none"
+						? "max-w-[85%] mt-4 rounded-2xl px-6 py-4 border bg-zinc-100 dark:bg-zinc-900 border-zinc-200 dark:border-zinc-800 text-zinc-950 dark:text-white rounded-br-none"
 						: "w-full py-4 text-zinc-800 dark:text-zinc-200"
 				}`}
 			>
@@ -163,17 +163,15 @@ export function MessageItem({
 								Suggested Questions
 							</p>
 							<div className="flex flex-wrap gap-2">
-								{msg.suggested_follow_up_questions.map(
-									(q) => (
-										<button
-											key={q}
-											onClick={() => onFollowUpClick?.(q)}
-											className="px-3.5 py-2 bg-zinc-100 hover:bg-zinc-200/80 dark:bg-zinc-800/60 dark:hover:bg-zinc-800 text-left text-xs font-medium rounded-xl text-emerald-700 dark:text-emerald-400 border border-zinc-200 dark:border-zinc-800 transition-all shadow-xs"
-										>
-											{q}
-										</button>
-									),
-								)}
+								{msg.suggested_follow_up_questions.map((q) => (
+									<button
+										key={q}
+										onClick={() => onFollowUpClick?.(q)}
+										className="px-3.5 py-2 bg-zinc-100 hover:bg-zinc-200/80 dark:bg-zinc-800/60 dark:hover:bg-zinc-800 text-left text-xs font-medium rounded-xl text-emerald-700 dark:text-emerald-400 border border-zinc-200 dark:border-zinc-800 transition-all shadow-xs"
+									>
+										{q}
+									</button>
+								))}
 							</div>
 						</motion.div>
 					)}
