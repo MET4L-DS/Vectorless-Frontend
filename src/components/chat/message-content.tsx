@@ -29,43 +29,42 @@ const extractText = (children: any): string => {
 	return text;
 };
 
+// A component to track typing activity per block and animate an underline.
+// Defined outside MessageContent to avoid recreation / performance anti-patterns.
+function StreamingBlock({ children, Component = "p", ...props }: any) {
+	const [isTyping, setIsTyping] = React.useState(true);
+
+	// Extract the raw text from the children array.
+	// Removing useMemo with unstable [children] dependency as it was bypassed every render.
+	const textContent = extractText(children);
+
+	React.useEffect(() => {
+		setIsTyping(true);
+		const t = setTimeout(() => setIsTyping(false), 800);
+		return () => clearTimeout(t);
+	}, [textContent]);
+
+	return (
+		<Component {...props}>
+			<span
+				className="transition-colors duration-1000 ease-out underline decoration-2 underline-offset-4"
+				style={{
+					textDecorationColor: isTyping
+						? "rgba(16, 185, 129, 0.6)"
+						: "transparent",
+				}}
+			>
+				{children}
+			</span>
+		</Component>
+	);
+}
+
 export function MessageContent({
 	msg,
 	isStreaming = false,
 	onCitationClick,
 }: MessageContentProps) {
-	// A sub-component to track typing activity per block and animate an underline
-	const StreamingBlock = React.useCallback(
-		({ children, Component = "p", ...props }: any) => {
-			const [isTyping, setIsTyping] = React.useState(true);
-
-			// Extract the raw text from the children array.
-			// This string will ONLY change if the actual text inside THIS specific block is currently being typed.
-			const textContent = React.useMemo(() => extractText(children), [children]);
-
-			React.useEffect(() => {
-				setIsTyping(true);
-				const t = setTimeout(() => setIsTyping(false), 800);
-				return () => clearTimeout(t);
-			}, [textContent]);
-
-			return (
-				<Component {...props}>
-					<span
-						className="transition-colors duration-1000 ease-out underline decoration-2 underline-offset-4"
-						style={{
-							textDecorationColor: isTyping
-								? "rgba(16, 185, 129, 0.6)"
-								: "transparent",
-						}}
-					>
-						{children}
-					</span>
-				</Component>
-			);
-		},
-		[],
-	);
 
 	const [displayedLength, setDisplayedLength] = React.useState(
 		msg.isHistory ? msg.content?.length || 0 : 0,

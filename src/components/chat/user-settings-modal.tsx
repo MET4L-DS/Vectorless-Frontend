@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { User, ShieldAlert, Key, UserX, Loader2, Eye, EyeOff } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -44,6 +44,23 @@ export function UserSettingsModal({
   const [deleteConfirmation, setDeleteConfirmation] = useState("");
   const [isDeletingAccount, setIsDeletingAccount] = useState(false);
   const [deleteError, setDeleteError] = useState("");
+
+  // Sync state with props and reset forms on open
+  useEffect(() => {
+    if (isOpen) {
+      setName(session?.user?.user_metadata?.full_name || session?.user?.user_metadata?.name || "");
+      setPassword("");
+      setConfirmPassword("");
+      setShowPassword(false);
+      setShowConfirmPassword(false);
+      setProfileSuccess("");
+      setProfileError("");
+      setPasswordSuccess("");
+      setPasswordError("");
+      setDeleteConfirmation("");
+      setDeleteError("");
+    }
+  }, [isOpen, session]);
 
   const handleUpdateProfile = async (e: React.FormEvent) => {
     e.preventDefault();

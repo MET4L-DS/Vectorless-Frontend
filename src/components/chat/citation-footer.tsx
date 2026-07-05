@@ -17,9 +17,9 @@ export function CitationFooter({
 
   return (
     <div className="mt-4 pt-3 border-t border-zinc-200 dark:border-zinc-800 flex flex-wrap gap-2">
-      {citations.map((cit, idx) => (
+      {citations.map((cit) => (
         <div
-          key={idx}
+          key={cit.node_id}
           onClick={() => {
             console.log(`[citation-footer.tsx] Footer citation tag clicked. Rendering sheet for:`, cit);
             onCitationClick(cit);

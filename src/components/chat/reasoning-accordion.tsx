@@ -95,7 +95,7 @@ export function ReasoningAccordion({
             <AnimatePresence initial={false}>
               {steps.map((step, idx) => (
                 <motion.div
-                  key={idx}
+                  key={`${step.type}-${step.content.substring(0, 35)}-${idx}`}
                   initial={{ opacity: 0, height: 0, y: 5 }}
                   animate={{ opacity: 1, height: "auto", y: 0 }}
                   exit={{ opacity: 0, height: 0 }}

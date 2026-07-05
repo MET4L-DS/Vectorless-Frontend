@@ -141,8 +141,8 @@ export function MessageItem({
 								<span>Recommended Actions</span>
 							</div>
 							<ul className="space-y-1.5 list-disc list-inside text-zinc-700 dark:text-zinc-300">
-								{msg.action_items.map((item, idx) => (
-									<li key={idx}>{item}</li>
+								{msg.action_items.map((item) => (
+									<li key={item}>{item}</li>
 								))}
 							</ul>
 						</motion.div>
@@ -164,9 +164,9 @@ export function MessageItem({
 							</p>
 							<div className="flex flex-wrap gap-2">
 								{msg.suggested_follow_up_questions.map(
-									(q, idx) => (
+									(q) => (
 										<button
-											key={idx}
+											key={q}
 											onClick={() => onFollowUpClick?.(q)}
 											className="px-3.5 py-2 bg-zinc-100 hover:bg-zinc-200/80 dark:bg-zinc-800/60 dark:hover:bg-zinc-800 text-left text-xs font-medium rounded-xl text-emerald-700 dark:text-emerald-400 border border-zinc-200 dark:border-zinc-800 transition-all shadow-xs"
 										>

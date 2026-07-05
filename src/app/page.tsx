@@ -168,6 +168,8 @@ export default function Home() {
 						]);
 						setThreadId(savedThread);
 					}
+				} else {
+					console.error(`[page.tsx] Failed to fetch sessions list. Status: ${res.status}`);
 				}
 			} catch (e) {
 				console.error("[page.tsx] Error fetching sessions list:", e);
@@ -188,6 +190,21 @@ export default function Home() {
 			`[page.tsx] fetchHistory effect triggered. Current threadId: "${threadId}"`,
 		);
 		localStorage.setItem("activeThreadId", threadId);
+
+		// If threadId is a locally generated timestamp string that was created within the last 3000ms,
+		// skip fetchHistory since it's a fresh session and has no backend history yet.
+		// This prevents showing the skeleton loading screen on new session creation.
+		const match = threadId.match(/^session-(\d+)$/);
+		if (match) {
+			const timestamp = parseInt(match[1], 10);
+			if (Date.now() - timestamp < 3000) {
+				console.log(
+					`[page.tsx] Skipping fetchHistory for just-created session: "${threadId}"`
+				);
+				return;
+			}
+		}
+
 		fetchHistory();
 	}, [threadId, fetchHistory, isPending, session?.user?.id]);
 
@@ -349,6 +366,13 @@ export default function Home() {
 				setThreadId={setThreadId}
 				sessionsList={sessionsList}
 				onNewSession={() => {
+					// Guard against spamming empty new sessions in the list
+					if (messages.length === 0 && !isFetchingHistory) {
+						console.log(
+							"[page.tsx] onNewSession ignored: current session is already empty."
+						);
+						return;
+					}
 					const newId = `session-${Date.now()}`;
 					console.log(`[page.tsx] New Session created: "${newId}"`);
 					localStorage.setItem("activeThreadId", newId);
@@ -458,9 +482,9 @@ export default function Home() {
 										"When can police arrest without a warrant?",
 										"What are the rights of an arrested person?",
 										"Explain the right to private defence of property.",
-									].map((suggestion, idx) => (
+									].map((suggestion) => (
 										<button
-											key={idx}
+											key={suggestion}
 											onClick={() => {
 												setInputVal(suggestion);
 												setTimeout(() => {

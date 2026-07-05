@@ -39,12 +39,21 @@ export function useLegalChat(threadId: string, options?: UseLegalChatOptions) {
   const [isStreaming, setIsStreaming] = useState(false);
   const [isFetchingHistory, setIsFetchingHistory] = useState(false);
   const abortControllerRef = useRef<AbortController | null>(null);
-
+  const fetchAbortControllerRef = useRef<AbortController | null>(null);
+ 
   const fetchHistory = useCallback(async () => {
     if (!threadId) return;
+
+    if (fetchAbortControllerRef.current) {
+      fetchAbortControllerRef.current.abort();
+    }
+    const abortController = new AbortController();
+    fetchAbortControllerRef.current = abortController;
+
     const historyUrl = `${API_BASE}/api/chats/${threadId}/history`;
     console.log(`[useLegalChat] fetchHistory initiated for URL: ${historyUrl}`);
     setIsFetchingHistory(true);
+    setMessages([]); // Clear old messages immediately to prevent state leaks
     try {
       const { data: { session } } = await supabase.auth.getSession();
       const token = session?.access_token;
@@ -52,13 +61,14 @@ export function useLegalChat(threadId: string, options?: UseLegalChatOptions) {
       const response = await axios.get(historyUrl, {
         headers: {
           ...(token ? { 'Authorization': `Bearer ${token}` } : {})
-        }
+        },
+        signal: abortController.signal
       });
       console.log(`[useLegalChat] fetchHistory responded successfully. HTTP Status: ${response.status}`);
       
       const data = response.data;
       console.log("[useLegalChat] fetchHistory payload parsed:", data);
-
+ 
       const historyMsgs: ChatMessage[] = (data.messages || []).map((m: any, idx: number) => {
         console.log(`[useLegalChat] Parsing history message #${idx + 1}:`, m);
         return {
@@ -73,19 +83,27 @@ export function useLegalChat(threadId: string, options?: UseLegalChatOptions) {
           isHistory: true
         };
       });
-
-      console.log(`[useLegalChat] Successfully populated ${historyMsgs.length} messages from database history.`);
-      setMessages(historyMsgs);
+ 
+      if (fetchAbortControllerRef.current === abortController) {
+        console.log(`[useLegalChat] Successfully populated ${historyMsgs.length} messages from database history.`);
+        setMessages(historyMsgs);
+      }
     } catch (e: any) {
+      if (axios.isCancel(e) || e.name === 'AbortError') {
+        console.log("[useLegalChat] fetchHistory aborted by client controller.");
+        return;
+      }
       console.error("[useLegalChat] fetchHistory failed with error:", e);
       if (e.response) {
         console.error(`[useLegalChat] Server responded with error status: ${e.response.status}`, e.response.data);
       }
     } finally {
-      setIsFetchingHistory(false);
+      if (fetchAbortControllerRef.current === abortController) {
+        setIsFetchingHistory(false);
+      }
     }
   }, [threadId]);
-
+ 
   const clearHistory = useCallback(async () => {
     if (!threadId) return;
     const clearUrl = `${API_BASE}/api/chats/${threadId}/history`;
@@ -93,11 +111,14 @@ export function useLegalChat(threadId: string, options?: UseLegalChatOptions) {
     try {
       const { data: { session } } = await supabase.auth.getSession();
       const token = session?.access_token;
-
+ 
       if (abortControllerRef.current) {
         abortControllerRef.current.abort();
       }
-
+      if (fetchAbortControllerRef.current) {
+        fetchAbortControllerRef.current.abort();
+      }
+ 
       const response = await axios.delete(clearUrl, {
         headers: {
           ...(token ? { 'Authorization': `Bearer ${token}` } : {})
@@ -113,7 +134,7 @@ export function useLegalChat(threadId: string, options?: UseLegalChatOptions) {
       setMessages([]);
     }
   }, [threadId]);
-
+ 
   const sendMessage = async (userMessage: string) => {
     if (!threadId || !userMessage.trim() || isStreaming) {
       console.warn(`[useLegalChat] Blocked sendMessage call. Message empty or stream already in progress. isStreaming: ${isStreaming}`);
@@ -142,14 +163,14 @@ export function useLegalChat(threadId: string, options?: UseLegalChatOptions) {
     
     console.log(`[useLegalChat] Appended placeholder user (${userMsgId}) and assistant (${assistantMsgId}) messages to UI state.`);
     setMessages(prev => [...prev, newUserMsg, newAssistantMsg]);
-
+ 
     const messageUrl = `${API_BASE}/api/chats/${threadId}/message`;
     console.log(`[useLegalChat] Posting query via axios request to: ${messageUrl}`);
-
+ 
     try {
       const { data: { session } } = await supabase.auth.getSession();
       const token = session?.access_token;
-
+ 
       const response = await axios.post(
         messageUrl,
         { message: userMessage },
@@ -164,7 +185,7 @@ export function useLegalChat(threadId: string, options?: UseLegalChatOptions) {
           signal: abortController.signal
         }
       );
-
+ 
       console.log(`[useLegalChat] SSE stream request resolved successfully. Status: ${response.status}`);
       
       const stream = response.data;
@@ -172,7 +193,7 @@ export function useLegalChat(threadId: string, options?: UseLegalChatOptions) {
         console.error("[useLegalChat] Axios stream response body is null or undefined.");
         throw new Error("No response body returned from server.");
       }
-
+ 
       console.log("[useLegalChat] Stream reader retrieved. Beginning SSE chunk iteration loop.");
       const reader = stream.getReader();
       const decoder = new TextDecoder("utf-8");
@@ -180,14 +201,14 @@ export function useLegalChat(threadId: string, options?: UseLegalChatOptions) {
       let stepsAccumulator: StreamStep[] = [];
       let buffer = "";
       let chunkCount = 0;
-
+ 
       while (true) {
         const { value, done } = await reader.read();
         if (done) {
           console.log(`[useLegalChat] SSE connection closed by server. Total chunks processed: ${chunkCount}`);
           break;
         }
-
+ 
         chunkCount++;
         const decodedText = decoder.decode(value, { stream: true });
         console.log(`[useLegalChat] Received stream chunk #${chunkCount} (size: ${decodedText.length} chars)`);
@@ -195,13 +216,13 @@ export function useLegalChat(threadId: string, options?: UseLegalChatOptions) {
         buffer += decodedText;
         const lines = buffer.split("\n");
         buffer = lines.pop() || "";
-
+ 
         for (const line of lines) {
           const cleanLine = line.trim();
           if (!cleanLine) continue;
           
           console.log(`[useLegalChat] Processing SSE line: "${cleanLine}"`);
-
+ 
           if (!cleanLine.startsWith("data: ")) {
             console.log(`[useLegalChat] Skipped non-data packet line: "${cleanLine}"`);
             continue;
@@ -212,7 +233,7 @@ export function useLegalChat(threadId: string, options?: UseLegalChatOptions) {
             console.log("[useLegalChat] Empty data payload encountered.");
             continue;
           }
-
+ 
           try {
             const parsed = JSON.parse(rawData);
             console.log(`[useLegalChat] Successfully decoded SSE event payload of type: "${parsed.type}"`, parsed);
@@ -286,15 +307,20 @@ export function useLegalChat(threadId: string, options?: UseLegalChatOptions) {
         m.id === assistantMsgId ? { ...m, content: `Connection error: ${error.message}` } : m
       ));
     } finally {
-      console.log("[useLegalChat] Finalizing stream; isStreaming toggled back to false.");
-      setIsStreaming(false);
+      if (abortControllerRef.current === abortController) {
+        console.log("[useLegalChat] Finalizing stream; isStreaming toggled back to false.");
+        setIsStreaming(false);
+      }
     }
   };
-
+ 
   const clearHistoryLocal = useCallback(() => {
     console.log(`[useLegalChat] Local message state cleared (no DB request) for threadId: ${threadId}`);
     if (abortControllerRef.current) {
       abortControllerRef.current.abort();
+    }
+    if (fetchAbortControllerRef.current) {
+      fetchAbortControllerRef.current.abort();
     }
     setMessages([]);
   }, [threadId]);
