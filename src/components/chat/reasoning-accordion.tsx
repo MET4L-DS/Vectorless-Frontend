@@ -2,6 +2,23 @@ import React from "react";
 import { Loader2, ChevronDown } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { ChatMessage } from "@/hooks/useLegalChat";
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
+
+const markdownComponents = {
+  p: ({ children }: any) => <p className="mb-1.5 last:mb-0 leading-normal">{children}</p>,
+  hr: () => <hr className="my-2 border-zinc-200/50 dark:border-zinc-800/80" />,
+  a: ({ href, children }: any) => (
+    <a href={href} className="underline hover:opacity-80" target="_blank" rel="noreferrer">
+      {children}
+    </a>
+  ),
+  code: ({ children }: any) => (
+    <code className="bg-zinc-100 dark:bg-zinc-900/60 px-1 py-0.5 rounded text-[10px] font-bold border border-zinc-200/40 dark:border-zinc-850/40">
+      {children}
+    </code>
+  )
+};
 
 interface ReasoningAccordionProps {
   steps: ChatMessage["steps"];
@@ -144,24 +161,36 @@ export function ReasoningAccordion({
                       className="border-b border-zinc-200/40 dark:border-zinc-900/50 pb-2 last:border-none last:pb-0 overflow-hidden"
                     >
                       {step.type === "thought" && (
-                        <p className="text-zinc-600 dark:text-zinc-400">
-                          <span className="text-amber-600 dark:text-amber-500 font-bold">[Thought]</span> {step.content}
-                        </p>
+                        <div className="text-zinc-600 dark:text-zinc-400">
+                          <span className="text-amber-600 dark:text-amber-500 font-bold block mb-0.5">[Thought]</span>
+                          <ReactMarkdown remarkPlugins={[remarkGfm]} components={markdownComponents}>
+                            {step.content}
+                          </ReactMarkdown>
+                        </div>
                       )}
                       {step.type === "tool_call" && (
-                        <p className="text-cyan-600 dark:text-cyan-400">
-                          <span className="text-cyan-600 dark:text-cyan-500 font-bold">[Tool Call]</span> {step.content}
-                        </p>
+                        <div className="text-cyan-600 dark:text-cyan-400">
+                          <span className="text-cyan-600 dark:text-cyan-500 font-bold block mb-0.5">[Tool Call]</span>
+                          <ReactMarkdown remarkPlugins={[remarkGfm]} components={markdownComponents}>
+                            {step.content}
+                          </ReactMarkdown>
+                        </div>
                       )}
                       {step.type === "observation" && (
-                        <p className="text-emerald-600 dark:text-emerald-500">
-                          <span className="text-emerald-600 dark:text-emerald-500 font-bold">[Observation]</span> {step.content}
-                        </p>
+                        <div className="text-emerald-600 dark:text-emerald-500">
+                          <span className="text-emerald-600 dark:text-emerald-500 font-bold block mb-0.5">[Observation]</span>
+                          <ReactMarkdown remarkPlugins={[remarkGfm]} components={markdownComponents}>
+                            {step.content}
+                          </ReactMarkdown>
+                        </div>
                       )}
                       {step.type === "error" && (
-                        <p className="text-red-500 dark:text-red-400">
-                          <span className="text-red-600 dark:text-red-500 font-bold">[Error]</span> {step.content}
-                        </p>
+                        <div className="text-red-500 dark:text-red-400">
+                          <span className="text-red-600 dark:text-red-500 font-bold block mb-0.5">[Error]</span>
+                          <ReactMarkdown remarkPlugins={[remarkGfm]} components={markdownComponents}>
+                            {step.content}
+                          </ReactMarkdown>
+                        </div>
                       )}
                     </motion.div>
                   ))}
