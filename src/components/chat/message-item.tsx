@@ -57,7 +57,7 @@ export function MessageItem({
 				}}
 				className={`transition-all ${
 					msg.role === "user"
-						? "max-w-[85%] mt-4 rounded-2xl px-6 py-4 border bg-zinc-100 dark:bg-zinc-900 border-zinc-200 dark:border-zinc-800 text-zinc-950 dark:text-white rounded-br-none"
+						? "max-w-[85%] mt-6 rounded-2xl px-6 py-4 border bg-zinc-100 dark:bg-zinc-900 border-zinc-200 dark:border-zinc-800 text-zinc-950 dark:text-white rounded-br-none"
 						: "w-full py-4 text-zinc-800 dark:text-zinc-200"
 				}`}
 			>
