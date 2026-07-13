@@ -32,6 +32,7 @@ export function ReasoningAccordion({
   isLastMessage,
 }: ReasoningAccordionProps) {
   const [isOpen, setIsOpen] = React.useState(false);
+  const stepsContainerRef = React.useRef<HTMLDivElement>(null);
 
   const isActive = isStreaming && isLastMessage;
 
@@ -41,6 +42,29 @@ export function ReasoningAccordion({
       setIsOpen(true);
     }
   }, [isActive]);
+
+  // Auto-scroll the steps container to the bottom when new steps are streamed
+  React.useEffect(() => {
+    const container = stepsContainerRef.current;
+    if (!container) return;
+
+    const observer = new MutationObserver(() => {
+      container.scrollTo({
+        top: container.scrollHeight,
+        behavior: "smooth"
+      });
+    });
+
+    observer.observe(container, {
+      childList: true,
+      subtree: true,
+      characterData: true,
+      attributes: true,
+      attributeFilter: ['style']
+    });
+
+    return () => observer.disconnect();
+  }, [isOpen]);
 
   if (!steps || steps.length === 0) {
     return null;
@@ -152,7 +176,10 @@ export function ReasoningAccordion({
               }}
               className="overflow-hidden"
             >
-              <div className="mt-2 p-3 bg-zinc-50 dark:bg-zinc-950/60 border border-zinc-200 dark:border-zinc-900 rounded-lg space-y-2 text-[11px] font-mono text-zinc-500 dark:text-zinc-400 overflow-y-auto max-h-56 break-words whitespace-pre-wrap">
+               <div 
+                ref={stepsContainerRef}
+                className="mt-2 p-3 bg-zinc-50 dark:bg-zinc-950/60 border border-zinc-200 dark:border-zinc-900 rounded-lg space-y-2 text-[11px] font-mono text-zinc-500 dark:text-zinc-400 overflow-y-auto max-h-56 break-words whitespace-pre-wrap"
+              >
                 <AnimatePresence initial={false}>
                   {steps.map((step, idx) => (
                     <motion.div

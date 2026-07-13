@@ -10,7 +10,7 @@ export interface Citation {
 }
 
 export interface StreamStep {
-  type: 'thought' | 'tool_call' | 'observation' | 'error';
+  type: 'thought' | 'tool_call' | 'observation' | 'error' | 'status';
   content: string;
 }
 

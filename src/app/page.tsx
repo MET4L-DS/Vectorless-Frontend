@@ -67,6 +67,36 @@ export default function Home() {
 	const [isSettingsOpen, setIsSettingsOpen] = useState(false);
 
 	const scrollContainerRef = useRef<HTMLDivElement>(null);
+	const chatViewportRef = useRef<HTMLDivElement>(null);
+	const isAtBottomRef = useRef<boolean>(true);
+
+	const handleScroll = () => {
+		const container = chatViewportRef.current;
+		if (!container) return;
+		// Use a generous threshold so we remain "at bottom" even during rapid smooth scroll updates
+		const isAtBottom = Math.abs(container.scrollHeight - container.scrollTop - container.clientHeight) <= 250;
+		isAtBottomRef.current = isAtBottom;
+	};
+
+	// Auto-scroll logic using MutationObserver to track all DOM changes (e.g. text animating in)
+	useEffect(() => {
+		const container = chatViewportRef.current;
+		if (!container) return;
+
+		const observer = new MutationObserver(() => {
+			if (isAtBottomRef.current && scrollContainerRef.current) {
+				scrollContainerRef.current.scrollIntoView({ behavior: "smooth", block: "end" });
+			}
+		});
+
+		observer.observe(container, {
+			childList: true,
+			subtree: true,
+			characterData: true,
+		});
+
+		return () => observer.disconnect();
+	}, []);
 
 	// Sync Supabase session & handle guest anonymous login on load
 	useEffect(() => {
@@ -218,10 +248,12 @@ export default function Home() {
 		setMounted(true);
 	}, []);
 
-	// Auto-scroll to bottom of chat
+	// Auto-scroll to bottom of chat if it's a new user query
 	useEffect(() => {
-		if (scrollContainerRef.current) {
-			scrollContainerRef.current.scrollIntoView({ behavior: "smooth" });
+		const isLastMsgUser = messages.length > 0 && messages[messages.length - 1].role === "user";
+		if ((isAtBottomRef.current || isLastMsgUser) && scrollContainerRef.current) {
+			scrollContainerRef.current.scrollIntoView({ behavior: "smooth", block: "end" });
+			if (isLastMsgUser) isAtBottomRef.current = true;
 		}
 	}, [messages]);
 
@@ -443,7 +475,11 @@ export default function Home() {
 				/>
 
 				{/* Scrollable Message List */}
-				<div className="flex-1 overflow-y-auto p-4 space-y-6">
+				<div 
+					ref={chatViewportRef}
+					onScroll={handleScroll}
+					className="flex-1 overflow-y-auto p-4 space-y-6"
+				>
 					{isFetchingHistory ? (
 						<div className="max-w-3xl mx-auto space-y-6 mt-4">
 							<motion.div

@@ -10,6 +10,7 @@ interface MessageContentProps {
 	msg: ChatMessage;
 	isStreaming?: boolean;
 	onCitationClick: (citation: Citation) => void;
+	onTypingComplete?: (complete: boolean) => void;
 }
 
 // Helper to extract raw text content from a React element tree
@@ -64,41 +65,55 @@ export function MessageContent({
 	msg,
 	isStreaming = false,
 	onCitationClick,
+	onTypingComplete,
 }: MessageContentProps) {
 
 	const [displayedLength, setDisplayedLength] = React.useState(
 		msg.isHistory ? msg.content?.length || 0 : 0,
 	);
 
+	const onTypingCompleteRef = React.useRef(onTypingComplete);
 	React.useEffect(() => {
-		if (!msg.content) return;
+		onTypingCompleteRef.current = onTypingComplete;
+	}, [onTypingComplete]);
+
+	React.useEffect(() => {
+		if (!msg.content) {
+			onTypingCompleteRef.current?.(false);
+			return;
+		}
 
 		if (isStreaming || displayedLength < msg.content.length) {
-			const interval = setInterval(() => {
-				setDisplayedLength((prev) => {
-					const next = prev + 5; // smooth 500 chars/sec reveal speed
-					if (next >= msg.content!.length) {
+			onTypingCompleteRef.current?.(false);
+			
+			if (displayedLength < msg.content.length) {
+				let currentLen = displayedLength;
+				const interval = setInterval(() => {
+					currentLen += 6; // smooth 600 chars/sec reveal speed
+					if (currentLen >= msg.content!.length) {
 						clearInterval(interval);
-						return msg.content!.length;
+						setDisplayedLength(msg.content!.length);
+						onTypingCompleteRef.current?.(true);
+					} else {
+						setDisplayedLength(currentLen);
 					}
-					return next;
-				});
-			}, 10);
-			return () => clearInterval(interval);
+				}, 10);
+				return () => clearInterval(interval);
+			} else {
+				onTypingCompleteRef.current?.(true);
+			}
 		} else {
 			setDisplayedLength(msg.content.length);
+			onTypingCompleteRef.current?.(true);
 		}
-	}, [msg.content, isStreaming]);
+	}, [msg.content, isStreaming]); // deliberately omit displayedLength to avoid interval reset
 
-	const isVisuallyStreaming =
-		isStreaming || displayedLength < (msg.content?.length || 0);
+	const isTypingFinished = !!msg.content && displayedLength >= msg.content.length;
+	const isVisuallyStreaming = isStreaming || !isTypingFinished;
 	const textToRender = msg.content?.substring(0, displayedLength) || "";
 
 	// Convert [Source: BNS_S309, BNS_S310] to multiple markdown links using custom scheme #citation-
 	const preprocessCitations = (content: string) => {
-		const prefixes = ["BNS_", "BNSS_", "BSA_", "SOP_"];
-		const isProductId = (str: string) => prefixes.some(pref => str.startsWith(pref));
-
 		return content.replace(
 			/\[Source:\s*([^\]]+)\]/g,
 			(match, idsString) => {
@@ -106,26 +121,13 @@ export function MessageContent({
 					.split(",")
 					.map((id: string) => id.trim())
 					.filter((id: string) => id);
-				
-				const groups: { anchor: string; display: string }[] = [];
-				for (const id of ids) {
-					if (isProductId(id)) {
-						groups.push({ anchor: id, display: id });
-					} else {
-						if (groups.length > 0) {
-							groups[groups.length - 1].display += `, ${id}`;
-						} else {
-							groups.push({ anchor: id, display: id });
-						}
-					}
-				}
 
-				return groups
-					.map((group) => {
-						const safeAnchor = encodeURIComponent(group.anchor.replace(/\s+/g, "_"))
+				return ids
+					.map((id: string) => {
+						const safeAnchor = encodeURIComponent(id.replace(/\s+/g, "_"))
 							.replace(/\(/g, "%28")
 							.replace(/\)/g, "%29");
-						return `[${group.display}](#citation-${safeAnchor})`;
+						return `[${id}](#citation-${safeAnchor})`;
 					})
 					.join(" ");
 			},
@@ -252,7 +254,7 @@ export function MessageContent({
 			<ReactMarkdown components={components} remarkPlugins={[remarkGfm]}>
 				{preprocessedText}
 			</ReactMarkdown>
-			{msg.key_provisions && msg.key_provisions.length > 0 && !isStreaming && (
+			{msg.key_provisions && msg.key_provisions.length > 0 && isTypingFinished && (
 				<motion.div
 					initial={{ opacity: 0, y: 15 }}
 					animate={{ opacity: 1, y: 0 }}

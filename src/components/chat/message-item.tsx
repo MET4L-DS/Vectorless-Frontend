@@ -21,6 +21,19 @@ export function MessageItem({
 	onCitationClick,
 	onFollowUpClick,
 }: MessageItemProps) {
+	const [isTypingComplete, setIsTypingComplete] = React.useState(
+		msg.isHistory || !isLastMessage
+	);
+
+	// Update typing completion when history, streaming or last message status changes
+	React.useEffect(() => {
+		if (msg.isHistory || !isLastMessage) {
+			setIsTypingComplete(true);
+		} else if (isStreaming) {
+			setIsTypingComplete(false);
+		}
+	}, [msg.isHistory, isLastMessage, isStreaming]);
+
 	// Add debugging logs to track mounts and updates for reveal animations
 	React.useEffect(() => {
 		console.log(
@@ -119,6 +132,7 @@ export function MessageItem({
 									msg={msg}
 									isStreaming={isStreaming && isLastMessage}
 									onCitationClick={onCitationClick}
+									onTypingComplete={setIsTypingComplete}
 								/>
 							)}
 						</motion.div>
@@ -129,7 +143,8 @@ export function MessageItem({
 				{msg.role === "assistant" &&
 					msg.action_items &&
 					msg.action_items.length > 0 &&
-					!isStreaming && (
+					!isStreaming &&
+					isTypingComplete && (
 						<motion.div
 							initial={{ opacity: 0, y: 15 }}
 							animate={{ opacity: 1, y: 0 }}
@@ -152,7 +167,8 @@ export function MessageItem({
 				{msg.role === "assistant" &&
 					msg.suggested_follow_up_questions &&
 					msg.suggested_follow_up_questions.length > 0 &&
-					!isStreaming && (
+					!isStreaming &&
+					isTypingComplete && (
 						<motion.div
 							initial={{ opacity: 0, y: 15 }}
 							animate={{ opacity: 1, y: 0 }}
@@ -180,7 +196,8 @@ export function MessageItem({
 				{msg.role === "assistant" &&
 					msg.citations &&
 					msg.citations.length > 0 &&
-					!isStreaming && (
+					!isStreaming &&
+					isTypingComplete && (
 						<motion.div
 							initial={{ opacity: 0, y: 15 }}
 							animate={{ opacity: 1, y: 0 }}
