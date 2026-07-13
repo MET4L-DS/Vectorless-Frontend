@@ -246,8 +246,8 @@ export function useLegalChat(threadId: string, options?: UseLegalChatOptions) {
               }
             }
             
-            // Handle thoughts, tool calls, and observations
-            if (['thought', 'tool_call', 'observation', 'error'].includes(parsed.type)) {
+            // Handle thoughts, tool calls, observations, and status updates
+            if (['thought', 'tool_call', 'observation', 'error', 'status'].includes(parsed.type)) {
               if (parsed.type === 'tool_call') {
                 const toolDetails = `Calling tool: ${parsed.name} with parameters: ${JSON.stringify(parsed.args)}`;
                 console.log(`[useLegalChat] [Agent Tool Call]: ${parsed.name}`, parsed.args);

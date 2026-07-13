@@ -61,6 +61,9 @@ export function ReasoningAccordion({
       if (lastStep.type === "observation") {
         return "Agent Observation: Processing retrieved context...";
       }
+      if (lastStep.type === "status") {
+        return `Agent Status: ${lastStep.content}`;
+      }
       if (lastStep.type === "error") {
         return "Agent Error: Execution encountered issues";
       }
@@ -179,6 +182,14 @@ export function ReasoningAccordion({
                       {step.type === "observation" && (
                         <div className="text-emerald-600 dark:text-emerald-500">
                           <span className="text-emerald-600 dark:text-emerald-500 font-bold block mb-0.5">[Observation]</span>
+                          <ReactMarkdown remarkPlugins={[remarkGfm]} components={markdownComponents}>
+                            {step.content}
+                          </ReactMarkdown>
+                        </div>
+                      )}
+                      {step.type === "status" && (
+                        <div className="text-zinc-500 dark:text-zinc-400">
+                          <span className="text-zinc-500 dark:text-zinc-400 font-bold block mb-0.5">[Status]</span>
                           <ReactMarkdown remarkPlugins={[remarkGfm]} components={markdownComponents}>
                             {step.content}
                           </ReactMarkdown>
