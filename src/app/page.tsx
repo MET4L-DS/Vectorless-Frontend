@@ -160,10 +160,33 @@ export default function Home() {
 					data: { session: currentSession },
 				} = await supabase.auth.getSession();
 				const token = currentSession?.access_token;
-				const res = await fetch(`${API_BASE}/api/chats/sessions`, {
-					headers: token ? { Authorization: `Bearer ${token}` } : {},
-				});
-				if (res.ok) {
+				
+				let res: Response | null = null;
+				let retries = 5;
+				let delay = 2000;
+				
+				while (retries > 0) {
+					try {
+						res = await fetch(`${API_BASE}/api/chats/sessions`, {
+							headers: token ? { Authorization: `Bearer ${token}` } : {},
+						});
+						if (!res.ok && res.status >= 500) {
+							throw new Error(`Server returned status ${res.status}`);
+						}
+						break;
+					} catch (err: any) {
+						retries--;
+						console.warn(
+							`[page.tsx] Fetch sessions attempt failed. Retrying in ${delay}ms... (${retries} retries left). Error:`,
+							err?.message || err
+						);
+						if (retries === 0) throw err;
+						await new Promise((resolve) => setTimeout(resolve, delay));
+						delay = Math.min(delay * 1.5, 10000);
+					}
+				}
+
+				if (res && res.ok) {
 					const data = await res.json();
 					if (data.sessions && data.sessions.length > 0) {
 						const fetched = data.sessions;
@@ -201,7 +224,7 @@ export default function Home() {
 						setThreadId(savedThread);
 					}
 				} else {
-					console.error(`[page.tsx] Failed to fetch sessions list. Status: ${res.status}`);
+					console.error(`[page.tsx] Failed to fetch sessions list. Status: ${res?.status}`);
 				}
 			} catch (e) {
 				console.error("[page.tsx] Error fetching sessions list:", e);

@@ -58,12 +58,43 @@ export function useLegalChat(threadId: string, options?: UseLegalChatOptions) {
       const { data: { session } } = await supabase.auth.getSession();
       const token = session?.access_token;
       
-      const response = await axios.get(historyUrl, {
-        headers: {
-          ...(token ? { 'Authorization': `Bearer ${token}` } : {})
-        },
-        signal: abortController.signal
-      });
+      let response: any = null;
+      let retries = 5;
+      let delay = 2000;
+
+      while (retries > 0) {
+        try {
+          response = await axios.get(historyUrl, {
+            headers: {
+              ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+            },
+            signal: abortController.signal
+          });
+          break;
+        } catch (err: any) {
+          if (axios.isCancel(err) || err.name === 'AbortError' || abortController.signal.aborted) {
+            throw err;
+          }
+          const isServerError = err.response && err.response.status >= 500;
+          const isNetworkError = !err.response;
+          if ((isServerError || isNetworkError) && retries > 1) {
+            retries--;
+            console.warn(
+              `[useLegalChat] fetchHistory attempt failed. Retrying in ${delay}ms... (${retries} retries left). Error:`,
+              err.message
+            );
+            await new Promise((resolve) => setTimeout(resolve, delay));
+            delay = Math.min(delay * 1.5, 10000);
+          } else {
+            throw err;
+          }
+        }
+      }
+
+      if (!response) {
+        throw new Error("No response received from the server.");
+      }
+
       console.log(`[useLegalChat] fetchHistory responded successfully. HTTP Status: ${response.status}`);
       
       const data = response.data;
@@ -171,31 +202,32 @@ export function useLegalChat(threadId: string, options?: UseLegalChatOptions) {
       const { data: { session } } = await supabase.auth.getSession();
       const token = session?.access_token;
  
-      const response = await axios.post(
+      const response = await fetch(
         messageUrl,
-        { message: userMessage },
         {
+          method: 'POST',
           headers: { 
             'Content-Type': 'application/json',
             'Accept': 'text/event-stream',
             ...(token ? { 'Authorization': `Bearer ${token}` } : {})
           },
-          responseType: 'stream',
-          adapter: 'fetch', // Crucial to allow ReadableStream body handling in browser environments
+          body: JSON.stringify({ message: userMessage }),
           signal: abortController.signal
         }
       );
  
       console.log(`[useLegalChat] SSE stream request resolved successfully. Status: ${response.status}`);
       
-      const stream = response.data;
-      if (!stream) {
-        console.error("[useLegalChat] Axios stream response body is null or undefined.");
+      if (!response.ok) {
+        throw new Error(`Server responded with status ${response.status}`);
+      }
+      if (!response.body) {
+        console.error("[useLegalChat] Response body is null or undefined.");
         throw new Error("No response body returned from server.");
       }
  
       console.log("[useLegalChat] Stream reader retrieved. Beginning SSE chunk iteration loop.");
-      const reader = stream.getReader();
+      const reader = response.body.getReader();
       const decoder = new TextDecoder("utf-8");
       
       let stepsAccumulator: StreamStep[] = [];
