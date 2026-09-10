@@ -16,6 +16,7 @@ import { CitationSheet } from "@/components/chat/citation-sheet";
 import { UserSettingsModal } from "@/components/chat/user-settings-modal";
 import { ProseSafelist } from "@/components/chat/prose-safelist";
 import { Sheet, SheetContent } from "@/components/ui/sheet";
+import { ServiceUnavailableBanner } from "@/components/chat/service-unavailable-banner";
 
 export default function Home() {
 	const [threadId, setThreadId] = useState<string>("");
@@ -65,6 +66,7 @@ export default function Home() {
 	);
 	const [isSheetOpen, setIsSheetOpen] = useState(false);
 	const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+	const [isServiceUnavailable, setIsServiceUnavailable] = useState(false);
 
 	const scrollContainerRef = useRef<HTMLDivElement>(null);
 	const chatViewportRef = useRef<HTMLDivElement>(null);
@@ -96,6 +98,35 @@ export default function Home() {
 		});
 
 		return () => observer.disconnect();
+	}, []);
+
+	// Early health probe to detect paused cloud backend / Supabase
+	const checkBackendHealth = async () => {
+		const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+		try {
+			const res = await fetch(`${API_BASE}/health`, { signal: AbortSignal.timeout(6000) });
+			if (res.ok) {
+				setIsServiceUnavailable(false);
+				const { data } = await supabase.auth.getSession();
+				if (data?.session) {
+					setSession(data.session);
+				} else {
+					supabase.auth.signInAnonymously().catch(() => {});
+				}
+				return true;
+			} else {
+				setIsServiceUnavailable(true);
+				return false;
+			}
+		} catch (err) {
+			console.warn("[page.tsx] Health probe failed:", err);
+			setIsServiceUnavailable(true);
+			return false;
+		}
+	};
+
+	useEffect(() => {
+		checkBackendHealth();
 	}, []);
 
 	// Sync Supabase session & handle guest anonymous login on load
@@ -134,11 +165,18 @@ export default function Home() {
 				supabase.auth.signInAnonymously().then(({ data, error }) => {
 					if (error) {
 						console.error("[page.tsx] Anonymous sign in failed:", error);
+						if (error.message?.includes("Failed to fetch") || error.name === "AuthRetryableFetchError") {
+							setIsServiceUnavailable(true);
+						}
 					} else {
 						console.log("[page.tsx] Anonymous sign in completed successfully:", data.session?.user?.id);
+						setIsServiceUnavailable(false);
 					}
 				}).catch((error) => {
 					console.error("[page.tsx] Anonymous sign in encountered unexpected error:", error);
+					if (error instanceof TypeError || error?.message?.includes("Failed to fetch")) {
+						setIsServiceUnavailable(true);
+					}
 				});
 			}
 		});
@@ -175,12 +213,20 @@ export default function Home() {
 						}
 						break;
 					} catch (err: any) {
+						if (err instanceof TypeError || err?.message?.includes("Failed to fetch") || err?.name === "AbortError") {
+							console.warn("[page.tsx] Network error during session fetch (cloud backend may be sleeping):", err);
+							setIsServiceUnavailable(true);
+							break;
+						}
 						retries--;
 						console.warn(
 							`[page.tsx] Fetch sessions attempt failed. Retrying in ${delay}ms... (${retries} retries left). Error:`,
 							err?.message || err
 						);
-						if (retries === 0) throw err;
+						if (retries === 0) {
+							setIsServiceUnavailable(true);
+							throw err;
+						}
 						await new Promise((resolve) => setTimeout(resolve, delay));
 						delay = Math.min(delay * 1.5, 10000);
 					}
@@ -625,6 +671,17 @@ export default function Home() {
 						</div>
 					)}
 				</div>
+
+				{/* Service Unavailable Banner if Supabase / Backend is paused */}
+				<AnimatePresence>
+					{isServiceUnavailable && (
+						<ServiceUnavailableBanner
+							onRetry={async () => {
+								await checkBackendHealth();
+							}}
+						/>
+					)}
+				</AnimatePresence>
 
 				{/* TextInput Box */}
 				<ChatInput
