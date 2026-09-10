@@ -39,6 +39,11 @@ export default function Home() {
 				prev.map((s) => (s.id === threadId ? { ...s, title } : s)),
 			);
 		},
+		onError: (err) => {
+			if (err?.response?.status >= 500 || !err?.response) {
+				setIsServiceUnavailable(true);
+			}
+		},
 	});
 	const [inputVal, setInputVal] = useState("");
 
@@ -213,7 +218,7 @@ export default function Home() {
 						}
 						break;
 					} catch (err: any) {
-						if (err instanceof TypeError || err?.message?.includes("Failed to fetch") || err?.name === "AbortError") {
+						if (err instanceof TypeError || err?.message?.includes("Failed to fetch") || err?.name === "AbortError" || err?.message?.includes("status 500") || err?.message?.includes("status 503")) {
 							console.warn("[page.tsx] Network error during session fetch (cloud backend may be sleeping):", err);
 							setIsServiceUnavailable(true);
 							break;

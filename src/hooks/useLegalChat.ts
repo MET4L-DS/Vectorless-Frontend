@@ -29,6 +29,7 @@ export interface ChatMessage {
 
 export interface UseLegalChatOptions {
   onTitleGenerated?: (title: string) => void;
+  onError?: (err: any) => void;
 }
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
@@ -59,8 +60,8 @@ export function useLegalChat(threadId: string, options?: UseLegalChatOptions) {
       const token = session?.access_token;
       
       let response: any = null;
-      let retries = 5;
-      let delay = 2000;
+      let retries = 2;
+      let delay = 1000;
 
       while (retries > 0) {
         try {
@@ -128,6 +129,7 @@ export function useLegalChat(threadId: string, options?: UseLegalChatOptions) {
       if (e.response) {
         console.error(`[useLegalChat] Server responded with error status: ${e.response.status}`, e.response.data);
       }
+      options?.onError?.(e);
     } finally {
       if (fetchAbortControllerRef.current === abortController) {
         setIsFetchingHistory(false);
